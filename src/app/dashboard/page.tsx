@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Attendee } from '@/types';
 import { Search, Mic, Camera, UserCheck, RefreshCw, LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -10,7 +10,62 @@ export default function Dashboard() {
     const [attendees, setAttendees] = useState<Attendee[]>([]);
     const [loading, setLoading] = useState(true);
     const [query, setQuery] = useState('');
+    const [debouncedQuery, setDebouncedQuery] = useState('');
     const [checkingIn, setCheckingIn] = useState<string | null>(null);
+    const [isRecording, setIsRecording] = useState(false);
+    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+
+    const startRecording = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+            mediaRecorderRef.current = mediaRecorder;
+            const audioChunks: Blob[] = [];
+
+            mediaRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0) {
+                    audioChunks.push(event.data);
+                }
+            };
+
+            mediaRecorder.onstop = async () => {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                const formData = new FormData();
+                formData.append('audio', audioBlob);
+
+                try {
+                    const response = await fetch('/api/transcribe', {
+                        method: 'POST',
+                        body: formData,
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        setQuery(data.transcript);
+                    } else {
+                        console.error('Transcription failed');
+                    }
+                } catch (error) {
+                    console.error('Error sending audio:', error);
+                }
+
+                stream.getTracks().forEach(track => track.stop());
+                setIsRecording(false);
+            };
+
+            mediaRecorder.start();
+            setIsRecording(true);
+        } catch (error) {
+            console.error('Error accessing microphone:', error);
+            alert('Could not access microphone');
+        }
+    };
+
+    const stopRecording = () => {
+        if (mediaRecorderRef.current && isRecording) {
+            mediaRecorderRef.current.stop();
+        }
+    };
 
     const fetchAttendees = async () => {
         setLoading(true);
@@ -35,15 +90,25 @@ export default function Dashboard() {
         fetchAttendees();
     }, []);
 
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedQuery(query);
+        }, 2000);
+
+        return () => {
+            clearTimeout(handler);
+        };
+    }, [query]);
+
     const filteredAttendees = useMemo(() => {
-        if (!query) return attendees;
-        const lowerQuery = query.toLowerCase();
+        if (!debouncedQuery) return attendees;
+        const lowerQuery = debouncedQuery.toLowerCase();
         return attendees.filter(
             (a) =>
                 a.name.toLowerCase().includes(lowerQuery) ||
                 a.company.toLowerCase().includes(lowerQuery)
         );
-    }, [attendees, query]);
+    }, [attendees, debouncedQuery]);
 
     const handleCheckIn = async (id: string, name: string) => {
         if (!confirm(`Check in ${name}?`)) return;
@@ -123,9 +188,15 @@ export default function Dashboard() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                    <button className="flex items-center justify-center gap-2 bg-blue-600/20 text-blue-400 border border-blue-600/50 p-3 rounded-lg hover:bg-blue-600/30 transition">
-                        <Mic size={20} />
-                        <span>Voice Input</span>
+                    <button
+                        onClick={isRecording ? stopRecording : startRecording}
+                        className={`flex items-center justify-center gap-2 border p-3 rounded-lg transition ${isRecording
+                                ? 'bg-red-600/20 text-red-400 border-red-600/50 hover:bg-red-600/30'
+                                : 'bg-blue-600/20 text-blue-400 border-blue-600/50 hover:bg-blue-600/30'
+                            }`}
+                    >
+                        <Mic size={20} className={isRecording ? 'animate-pulse' : ''} />
+                        <span>{isRecording ? 'Stop Recording' : 'Voice Input'}</span>
                     </button>
                     <button className="flex items-center justify-center gap-2 bg-purple-600/20 text-purple-400 border border-purple-600/50 p-3 rounded-lg hover:bg-purple-600/30 transition">
                         <Camera size={20} />
@@ -145,8 +216,8 @@ export default function Dashboard() {
                         <div
                             key={attendee.id}
                             className={`p-4 rounded-lg border ${attendee.status === 'Checked In'
-                                    ? 'bg-green-900/10 border-green-900/30'
-                                    : 'bg-gray-800 border-gray-700'
+                                ? 'bg-green-900/10 border-green-900/30'
+                                : 'bg-gray-800 border-gray-700'
                                 } flex justify-between items-center transition`}
                         >
                             <div>
