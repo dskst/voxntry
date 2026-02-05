@@ -4,7 +4,7 @@ import { checkInAttendee } from '@/lib/google-sheets';
 import { getConference } from '@/config/conferences';
 
 export async function POST(request: Request) {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const conferenceId = cookieStore.get('voxntry_conf_id')?.value;
   const staffName = cookieStore.get('voxntry_staff_name')?.value;
 

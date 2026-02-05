@@ -4,7 +4,7 @@ import { getAttendees } from '@/lib/google-sheets';
 import { getConference } from '@/config/conferences';
 
 export async function GET(request: Request) {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const conferenceId = cookieStore.get('voxntry_conf_id')?.value;
 
   if (!conferenceId) {

@@ -2,7 +2,8 @@ import { google } from 'googleapis';
 import { getGoogleAuth } from './google';
 import { Attendee } from '@/types';
 
-export const SHEETS_RANGE = 'Sheet1!A2:G'; // Adjust based on header row
+export const SHEET_NAME = 'シート1';
+export const SHEETS_RANGE = `${SHEET_NAME}!A2:G`; // Adjust based on header row
 
 export const mapRowToAttendee = (row: string[], index: number): Attendee => {
   return {
@@ -63,7 +64,7 @@ export const checkInAttendee = async (
 
   await sheets.spreadsheets.values.update({
     spreadsheetId,
-    range: `Sheet1!E${actualRowNumber}:G${actualRowNumber}`,
+    range: `${SHEET_NAME}!E${actualRowNumber}:G${actualRowNumber}`,
     valueInputOption: 'USER_ENTERED',
     requestBody: {
       values: [['Checked In', timestamp, staffName]],
