@@ -17,7 +17,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const attendees = await getAttendees(conference.spreadsheetId);
+    const attendees = await getAttendees(conference.spreadsheetId, conference.sheetConfig);
     return NextResponse.json({ attendees });
   } catch (error) {
     console.error('Failed to fetch attendees:', error);

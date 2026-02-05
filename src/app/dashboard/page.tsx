@@ -13,6 +13,7 @@ export default function Dashboard() {
     const [debouncedQuery, setDebouncedQuery] = useState('');
     const [checkingIn, setCheckingIn] = useState<string | null>(null);
     const [isRecording, setIsRecording] = useState(false);
+    const [isProcessingAudio, setIsProcessingAudio] = useState(false);
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
 
     const startRecording = async () => {
@@ -29,6 +30,8 @@ export default function Dashboard() {
             };
 
             mediaRecorder.onstop = async () => {
+                setIsRecording(false);
+                setIsProcessingAudio(true);
                 const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
                 const formData = new FormData();
                 formData.append('audio', audioBlob);
@@ -47,10 +50,11 @@ export default function Dashboard() {
                     }
                 } catch (error) {
                     console.error('Error sending audio:', error);
+                } finally {
+                    setIsProcessingAudio(false);
                 }
 
                 stream.getTracks().forEach(track => track.stop());
-                setIsRecording(false);
             };
 
             mediaRecorder.start();
@@ -190,13 +194,22 @@ export default function Dashboard() {
                 <div className="grid grid-cols-2 gap-4">
                     <button
                         onClick={isRecording ? stopRecording : startRecording}
+                        disabled={isProcessingAudio}
                         className={`flex items-center justify-center gap-2 border p-3 rounded-lg transition ${isRecording
-                                ? 'bg-red-600/20 text-red-400 border-red-600/50 hover:bg-red-600/30'
+                            ? 'bg-red-600/20 text-red-400 border-red-600/50 hover:bg-red-600/30'
+                            : isProcessingAudio
+                                ? 'bg-yellow-600/20 text-yellow-400 border-yellow-600/50 cursor-wait'
                                 : 'bg-blue-600/20 text-blue-400 border-blue-600/50 hover:bg-blue-600/30'
                             }`}
                     >
-                        <Mic size={20} className={isRecording ? 'animate-pulse' : ''} />
-                        <span>{isRecording ? 'Stop Recording' : 'Voice Input'}</span>
+                        <Mic size={20} className={isRecording ? 'animate-pulse' : isProcessingAudio ? 'animate-bounce' : ''} />
+                        <span>
+                            {isRecording
+                                ? 'Stop Recording'
+                                : isProcessingAudio
+                                    ? 'Processing...'
+                                    : 'Voice Input'}
+                        </span>
                     </button>
                     <button className="flex items-center justify-center gap-2 bg-purple-600/20 text-purple-400 border border-purple-600/50 p-3 rounded-lg hover:bg-purple-600/30 transition">
                         <Camera size={20} />

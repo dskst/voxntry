@@ -9,9 +9,24 @@ export interface Attendee {
   staffName?: string;
 }
 
+export interface SheetColumnMapping {
+  sheetName: string;
+  startRow: number;
+  columns: {
+    id: number;
+    company: number;
+    name: number;
+    itemsToHandOut: number;
+    status: number;
+    timeStamp: number;
+    staffName: number;
+  };
+}
+
 export interface ConferenceConfig {
   id: string;
   name: string;
   password: string;
   spreadsheetId: string;
+  sheetConfig?: SheetColumnMapping;
 }

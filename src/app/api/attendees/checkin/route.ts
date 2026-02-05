@@ -25,7 +25,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const success = await checkInAttendee(conference.spreadsheetId, rowId, staffName);
+    const success = await checkInAttendee(conference.spreadsheetId, rowId, staffName, conference.sheetConfig);
     if (!success) {
       return NextResponse.json({ error: 'Attendee not found' }, { status: 404 });
     }

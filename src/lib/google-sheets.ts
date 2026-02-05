@@ -1,30 +1,54 @@
 import { google } from 'googleapis';
 import { getGoogleAuth } from './google';
-import { Attendee } from '@/types';
+import { Attendee, SheetColumnMapping } from '@/types';
 
-export const SHEET_NAME = 'シート1';
-export const SHEETS_RANGE = `${SHEET_NAME}!A2:G`; // Adjust based on header row
+const DEFAULT_SHEET_CONFIG: SheetColumnMapping = {
+  sheetName: 'シート1',
+  startRow: 2,
+  columns: {
+    id: 0,
+    company: 1,
+    name: 2,
+    itemsToHandOut: 3,
+    status: 4,
+    timeStamp: 5,
+    staffName: 6,
+  },
+};
 
-export const mapRowToAttendee = (row: string[], index: number): Attendee => {
+export const mapRowToAttendee = (
+  row: string[],
+  index: number,
+  config: SheetColumnMapping = DEFAULT_SHEET_CONFIG
+): Attendee => {
+  const cols = config.columns;
   return {
-    id: row[0] || `row-${index + 2}`, // Fallback ID
-    company: row[1] || '',
-    name: row[2] || '',
-    itemsToHandOut: row[3] || '',
-    status: (row[4] as 'Checked In' | 'Not Checked In') || 'Not Checked In',
-    timeStamp: row[5] || '',
-    staffName: row[6] || '',
+    id: row[cols.id] || `row-${index + config.startRow}`, // Fallback ID
+    company: row[cols.company] || '',
+    name: row[cols.name] || '',
+    itemsToHandOut: row[cols.itemsToHandOut] || '',
+    status: (row[cols.status] as 'Checked In' | 'Not Checked In') || 'Not Checked In',
+    timeStamp: row[cols.timeStamp] || '',
+    staffName: row[cols.staffName] || '',
   };
 };
 
-export const getAttendees = async (spreadsheetId: string): Promise<Attendee[]> => {
+export const getAttendees = async (
+  spreadsheetId: string,
+  config: SheetColumnMapping = DEFAULT_SHEET_CONFIG
+): Promise<Attendee[]> => {
   const auth = getGoogleAuth();
   const sheets = google.sheets({ version: 'v4', auth });
+
+  // Calculate the range to fetch based on the config. 
+  // We'll fetch from startRow to end of sheet, and up to the max column index we care about.
+  // Actually, fetching 'A{startRow}:ZZ' is simpler and safe enough usually.
+  const range = `${config.sheetName}!A${config.startRow}:ZZ`;
 
   try {
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: SHEETS_RANGE,
+      range,
     });
 
     const rows = response.data.values;
@@ -32,42 +56,63 @@ export const getAttendees = async (spreadsheetId: string): Promise<Attendee[]> =
       return [];
     }
 
-    return rows.map((row, index) => mapRowToAttendee(row, index));
+    return rows.map((row, index) => mapRowToAttendee(row, index, config));
   } catch (error) {
     console.error('Error fetching sheets:', error);
     throw error;
   }
 };
 
+const getColumnLetter = (colIndex: number): string => {
+  let letter = '';
+  while (colIndex >= 0) {
+    letter = String.fromCharCode((colIndex % 26) + 65) + letter;
+    colIndex = Math.floor(colIndex / 26) - 1;
+  }
+  return letter;
+};
+
 export const checkInAttendee = async (
   spreadsheetId: string,
   rowId: string,
-  staffName: string
+  staffName: string,
+  config: SheetColumnMapping = DEFAULT_SHEET_CONFIG
 ): Promise<boolean> => {
   const auth = getGoogleAuth();
   const sheets = google.sheets({ version: 'v4', auth });
   
-  // Need to find the row index again to be safe, or we pass the row index from the frontend.
-  // For simplicity, assuming rowId wraps the row index or we search.
-  // Let's assume passed ID is "row-{rowIndex}" for MVP simplicity if not unique ID.
-  // Real implementation should search for the ID column.
-  
   // Implementation: Find row by ID
-  const attendees = await getAttendees(spreadsheetId);
+  // We fetch attendees using the config to find the correct row
+  const attendees = await getAttendees(spreadsheetId, config);
   const rowIndex = attendees.findIndex(a => a.id === rowId);
 
   if (rowIndex === -1) return false;
 
-  const actualRowNumber = rowIndex + 2; // +2 for 1-based index and header row
+  const actualRowNumber = rowIndex + config.startRow; 
 
   const timestamp = new Date().toISOString();
 
-  await sheets.spreadsheets.values.update({
+  // Prepare updates for Status, TimeStamp, and StaffName
+  const updates = [
+    {
+      range: `${config.sheetName}!${getColumnLetter(config.columns.status)}${actualRowNumber}`,
+      values: [['Checked In']],
+    },
+    {
+      range: `${config.sheetName}!${getColumnLetter(config.columns.timeStamp)}${actualRowNumber}`,
+      values: [[timestamp]],
+    },
+    {
+      range: `${config.sheetName}!${getColumnLetter(config.columns.staffName)}${actualRowNumber}`,
+      values: [[staffName]],
+    },
+  ];
+
+  await sheets.spreadsheets.values.batchUpdate({
     spreadsheetId,
-    range: `${SHEET_NAME}!E${actualRowNumber}:G${actualRowNumber}`,
-    valueInputOption: 'USER_ENTERED',
     requestBody: {
-      values: [['Checked In', timestamp, staffName]],
+      valueInputOption: 'USER_ENTERED',
+      data: updates,
     },
   });
 
