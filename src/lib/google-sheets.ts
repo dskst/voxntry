@@ -138,3 +138,48 @@ export const checkInAttendee = async (
 
   return true;
 };
+
+export const checkOutAttendee = async (
+  spreadsheetId: string,
+  rowId: string,
+  config: SheetColumnMapping = DEFAULT_SHEET_CONFIG
+): Promise<boolean> => {
+  const auth = getGoogleAuth();
+  const sheets = google.sheets({ version: 'v4', auth });
+
+  // Get all attendees to find the row
+  const attendees = await getAttendees(spreadsheetId, config);
+  const rowIndex = attendees.findIndex((a) => a.id === rowId);
+
+  if (rowIndex === -1) {
+    return false;
+  }
+
+  const actualRowNumber = rowIndex + config.startRow;
+
+  // Update status to 'Not Checked In' and clear timestamp and staffName
+  const updates = [
+    {
+      range: `${config.sheetName}!${getColumnLetter(config.columns.status)}${actualRowNumber}`,
+      values: [['Not Checked In']],
+    },
+    {
+      range: `${config.sheetName}!${getColumnLetter(config.columns.timeStamp)}${actualRowNumber}`,
+      values: [['']],
+    },
+    {
+      range: `${config.sheetName}!${getColumnLetter(config.columns.staffName)}${actualRowNumber}`,
+      values: [['']],
+    },
+  ];
+
+  await sheets.spreadsheets.values.batchUpdate({
+    spreadsheetId,
+    requestBody: {
+      valueInputOption: 'USER_ENTERED',
+      data: updates,
+    },
+  });
+
+  return true;
+};

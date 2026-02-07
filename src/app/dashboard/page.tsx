@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { Attendee } from '@/types';
-import { Search, Mic, Camera, UserCheck, RefreshCw, LogOut } from 'lucide-react';
+import { Search, UserCheck, RefreshCw, LogOut, X, CheckCircle2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function Dashboard() {
@@ -12,64 +12,8 @@ export default function Dashboard() {
     const [query, setQuery] = useState('');
     const [debouncedQuery, setDebouncedQuery] = useState('');
     const [checkingIn, setCheckingIn] = useState<string | null>(null);
-    const [isRecording, setIsRecording] = useState(false);
-    const [isProcessingAudio, setIsProcessingAudio] = useState(false);
-    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-
-    const startRecording = async () => {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
-            mediaRecorderRef.current = mediaRecorder;
-            const audioChunks: Blob[] = [];
-
-            mediaRecorder.ondataavailable = (event) => {
-                if (event.data.size > 0) {
-                    audioChunks.push(event.data);
-                }
-            };
-
-            mediaRecorder.onstop = async () => {
-                setIsRecording(false);
-                setIsProcessingAudio(true);
-                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-                const formData = new FormData();
-                formData.append('audio', audioBlob);
-
-                try {
-                    const response = await fetch('/api/transcribe', {
-                        method: 'POST',
-                        body: formData,
-                    });
-
-                    if (response.ok) {
-                        const data = await response.json();
-                        setQuery(data.transcript);
-                    } else {
-                        console.error('Transcription failed');
-                    }
-                } catch (error) {
-                    console.error('Error sending audio:', error);
-                } finally {
-                    setIsProcessingAudio(false);
-                }
-
-                stream.getTracks().forEach(track => track.stop());
-            };
-
-            mediaRecorder.start();
-            setIsRecording(true);
-        } catch (error) {
-            console.error('Error accessing microphone:', error);
-            alert('Could not access microphone');
-        }
-    };
-
-    const stopRecording = () => {
-        if (mediaRecorderRef.current && isRecording) {
-            mediaRecorderRef.current.stop();
-        }
-    };
+    const [cancelingCheckIn, setCancelingCheckIn] = useState<string | null>(null);
+    const [confirmModalData, setConfirmModalData] = useState<Attendee | null>(null);
 
     const fetchAttendees = async () => {
         setLoading(true);
@@ -122,12 +66,52 @@ export default function Dashboard() {
         );
     }, [attendees, debouncedQuery]);
 
-    const handleCheckIn = async (id: string, name: string) => {
-        if (!confirm(`Check in ${name}?`)) return;
+    // Open modal for check-in confirmation
+    const handleCheckIn = (attendee: Attendee) => {
+        setConfirmModalData(attendee);
+    };
 
-        setCheckingIn(id);
+    // Perform actual check-in after confirmation
+    const confirmCheckIn = async () => {
+        if (!confirmModalData) return;
+
+        setCheckingIn(confirmModalData.id);
         try {
             const res = await fetch('/api/attendees/checkin', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ rowId: confirmModalData.id }),
+            });
+
+            if (res.ok) {
+                // Optimistic update
+                setAttendees((prev) =>
+                    prev.map((a) =>
+                        a.id === confirmModalData.id
+                            ? { ...a, status: 'Checked In', timeStamp: new Date().toISOString() }
+                            : a
+                    )
+                );
+                setConfirmModalData(null); // Close modal
+            } else {
+                alert('Check-in failed');
+            }
+        } catch (error) {
+            alert('Error during check-in');
+        } finally {
+            setCheckingIn(null);
+        }
+    };
+
+    // Handle check-in cancellation
+    const handleCancelCheckIn = async (id: string, name: string) => {
+        if (!confirm(`Cancel check-in for ${name}?`)) return;
+
+        setCancelingCheckIn(id);
+        try {
+            const res = await fetch('/api/attendees/checkout', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -139,16 +123,16 @@ export default function Dashboard() {
                 // Optimistic update
                 setAttendees((prev) =>
                     prev.map((a) =>
-                        a.id === id ? { ...a, status: 'Checked In', timeStamp: new Date().toISOString() } : a
+                        a.id === id ? { ...a, status: 'Not Checked In', timeStamp: undefined } : a
                     )
                 );
             } else {
-                alert('Check-in failed');
+                alert('Cancel check-in failed');
             }
         } catch (error) {
-            alert('Error during check-in');
+            alert('Error during cancel check-in');
         } finally {
-            setCheckingIn(null);
+            setCancelingCheckIn(null);
         }
     };
 
@@ -157,6 +141,141 @@ export default function Dashboard() {
         const checkedIn = attendees.filter((a) => a.status === 'Checked In').length;
         return { total, checkedIn };
     }, [attendees]);
+
+    // Confirmation Modal Component
+    const ConfirmationModal = ({
+        attendee,
+        onConfirm,
+        onCancel,
+        isLoading,
+    }: {
+        attendee: Attendee;
+        onConfirm: () => void;
+        onCancel: () => void;
+        isLoading: boolean;
+    }) => {
+        const itemsArray = parseItemsToHandOut(attendee.itemsToHandOut);
+
+        return (
+            <div
+                className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4
+                           animate-in fade-in duration-200"
+                onClick={onCancel}
+            >
+                <div
+                    className="bg-gray-800 border border-gray-700 rounded-2xl max-w-md w-full
+                               shadow-2xl animate-in zoom-in-95 duration-200"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    {/* Header */}
+                    <div className="flex justify-between items-center p-6 border-b border-gray-700">
+                        <h2 className="text-xl font-bold text-white">Check-In Confirmation</h2>
+                        <button
+                            onClick={onCancel}
+                            disabled={isLoading}
+                            className="text-gray-400 hover:text-white transition p-1 rounded-lg hover:bg-gray-700"
+                        >
+                            <X size={24} />
+                        </button>
+                    </div>
+
+                    {/* Content */}
+                    <div className="p-6 space-y-4">
+                        {/* Company */}
+                        <div>
+                            <p className="text-xs text-gray-500 uppercase font-semibold mb-1">Company</p>
+                            <p className="text-lg text-gray-300">{attendee.company}</p>
+                        </div>
+
+                        {/* Name */}
+                        <div>
+                            <p className="text-xs text-gray-500 uppercase font-semibold mb-1">Name</p>
+                            <p className="text-2xl font-bold text-white">{attendee.name}</p>
+                            {attendee.nameKana && (
+                                <p className="text-sm text-gray-400 mt-1">{attendee.nameKana}</p>
+                            )}
+                        </div>
+
+                        {/* Items to Hand Out */}
+                        {itemsArray.length > 0 && (
+                            <div>
+                                <p className="text-xs text-gray-500 uppercase font-semibold mb-2">Items to Hand Out</p>
+                                <div className="flex flex-wrap gap-2">
+                                    {itemsArray.map((item, idx) => (
+                                        <span
+                                            key={idx}
+                                            className="text-sm text-yellow-400 bg-yellow-500/20 px-3 py-1.5 rounded-lg
+                                                       border border-yellow-500/30 font-medium"
+                                        >
+                                            🎁 {item}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Additional Info Grid */}
+                        <div className="grid grid-cols-2 gap-3 pt-2">
+                            {attendee.tshirtSize && (
+                                <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
+                                    <p className="text-xs text-blue-400 mb-1">T-Shirt Size</p>
+                                    <p className="text-lg font-bold text-blue-300">
+                                        👕 {attendee.tshirtSize}
+                                    </p>
+                                </div>
+                            )}
+
+                            {attendee.attendsReception && (
+                                <div
+                                    className={`rounded-lg p-3 border ${
+                                        attendee.attendsReception === 'はい' || attendee.attendsReception === 'Yes'
+                                            ? 'bg-green-500/10 border-green-500/30'
+                                            : 'bg-gray-500/10 border-gray-500/30'
+                                    }`}
+                                >
+                                    <p className="text-xs text-gray-400 mb-1">Reception</p>
+                                    <p
+                                        className={`text-sm font-bold ${
+                                            attendee.attendsReception === 'はい' || attendee.attendsReception === 'Yes'
+                                                ? 'text-green-300'
+                                                : 'text-gray-300'
+                                        }`}
+                                    >
+                                        🍽️{' '}
+                                        {attendee.attendsReception === 'はい' || attendee.attendsReception === 'Yes'
+                                            ? '参加'
+                                            : '不参加'}
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Footer Buttons */}
+                    <div className="flex gap-3 p-6 border-t border-gray-700">
+                        <button
+                            onClick={onCancel}
+                            disabled={isLoading}
+                            className="flex-1 py-3 px-4 bg-gray-700 hover:bg-gray-600 text-white
+                                       rounded-xl font-medium transition active:scale-95 disabled:opacity-50"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={onConfirm}
+                            disabled={isLoading}
+                            className="flex-1 py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white
+                                       rounded-xl font-bold transition active:scale-95
+                                       flex items-center justify-center gap-2 disabled:opacity-50"
+                        >
+                            <CheckCircle2 size={20} />
+                            {isLoading ? 'Checking In...' : 'Confirm Check-In'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    };
 
     return (
         <div className="min-h-screen bg-gray-900 text-gray-100 p-4 pb-20">
@@ -197,32 +316,6 @@ export default function Dashboard() {
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                     />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                    <button
-                        onClick={isRecording ? stopRecording : startRecording}
-                        disabled={isProcessingAudio}
-                        className={`flex items-center justify-center gap-2 border p-3 rounded-lg transition ${isRecording
-                            ? 'bg-red-600/20 text-red-400 border-red-600/50 hover:bg-red-600/30'
-                            : isProcessingAudio
-                                ? 'bg-yellow-600/20 text-yellow-400 border-yellow-600/50 cursor-wait'
-                                : 'bg-blue-600/20 text-blue-400 border-blue-600/50 hover:bg-blue-600/30'
-                            }`}
-                    >
-                        <Mic size={20} className={isRecording ? 'animate-pulse' : isProcessingAudio ? 'animate-bounce' : ''} />
-                        <span>
-                            {isRecording
-                                ? 'Stop Recording'
-                                : isProcessingAudio
-                                    ? 'Processing...'
-                                    : 'Voice Input'}
-                        </span>
-                    </button>
-                    <button className="flex items-center justify-center gap-2 bg-purple-600/20 text-purple-400 border border-purple-600/50 p-3 rounded-lg hover:bg-purple-600/30 transition">
-                        <Camera size={20} />
-                        <span>Scan Card</span>
-                    </button>
                 </div>
             </div>
 
@@ -301,17 +394,28 @@ export default function Dashboard() {
 
                                 <div>
                                     {attendee.status === 'Checked In' ? (
-                                        <div className="flex flex-col items-end text-green-500">
+                                        <button
+                                            onClick={() => handleCancelCheckIn(attendee.id, attendee.name)}
+                                            disabled={cancelingCheckIn === attendee.id}
+                                            className="flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition
+                                                       bg-green-600/20 border border-green-600/50 text-green-400
+                                                       hover:bg-red-600/20 hover:border-red-600/50 hover:text-red-400
+                                                       active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
                                             <UserCheck size={24} />
-                                            <span className="text-xs mt-1">Done</span>
-                                        </div>
+                                            <span className="text-xs font-medium">
+                                                {cancelingCheckIn === attendee.id ? 'Canceling...' : 'Checked In'}
+                                            </span>
+                                        </button>
                                     ) : (
                                         <button
-                                            onClick={() => handleCheckIn(attendee.id, attendee.name)}
+                                            onClick={() => handleCheckIn(attendee)}
                                             disabled={checkingIn === attendee.id}
-                                            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition disabled:opacity-50 text-sm"
+                                            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg
+                                                       transition disabled:opacity-50 disabled:cursor-not-allowed text-sm
+                                                       active:scale-95"
                                         >
-                                            {checkingIn === attendee.id ? '...' : 'Check In'}
+                                            {checkingIn === attendee.id ? 'Checking...' : 'Check In'}
                                         </button>
                                     )}
                                 </div>
@@ -320,6 +424,16 @@ export default function Dashboard() {
                     })
                 )}
             </div>
+
+            {/* Confirmation Modal */}
+            {confirmModalData && (
+                <ConfirmationModal
+                    attendee={confirmModalData}
+                    onConfirm={confirmCheckIn}
+                    onCancel={() => setConfirmModalData(null)}
+                    isLoading={checkingIn === confirmModalData.id}
+                />
+            )}
         </div>
     );
 }
