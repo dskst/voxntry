@@ -13,6 +13,9 @@ const DEFAULT_SHEET_CONFIG: SheetColumnMapping = {
     status: 4,
     timeStamp: 5,
     staffName: 6,
+    nameKana: 7,
+    tshirtSize: 8,
+    attendsReception: 9,
   },
 };
 
@@ -30,6 +33,9 @@ export const mapRowToAttendee = (
     status: (row[cols.status] as 'Checked In' | 'Not Checked In') || 'Not Checked In',
     timeStamp: row[cols.timeStamp] || '',
     staffName: row[cols.staffName] || '',
+    nameKana: cols.nameKana !== undefined ? row[cols.nameKana] : undefined,
+    tshirtSize: cols.tshirtSize !== undefined ? row[cols.tshirtSize] : undefined,
+    attendsReception: cols.attendsReception !== undefined ? row[cols.attendsReception] : undefined,
   };
 };
 
@@ -57,8 +63,22 @@ export const getAttendees = async (
     }
 
     return rows.map((row, index) => mapRowToAttendee(row, index, config));
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching sheets:', error);
+
+    // Handle authentication errors
+    if (error?.code === 400 || error?.code === 401) {
+      const errorMsg = error?.response?.data?.error_description || error?.message || 'Authentication error';
+
+      if (errorMsg.includes('invalid_rapt') || errorMsg.includes('invalid_grant')) {
+        throw new Error(
+          'Google authentication expired. Please run "gcloud auth application-default login" or set up a service account.'
+        );
+      }
+
+      throw new Error(`Google Sheets authentication failed: ${errorMsg}`);
+    }
+
     throw error;
   }
 };

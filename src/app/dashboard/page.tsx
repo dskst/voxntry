@@ -104,6 +104,14 @@ export default function Dashboard() {
         };
     }, [query]);
 
+    // Helper function to parse comma-separated items into an array
+    const parseItemsToHandOut = (items: string): string[] => {
+        if (!items || items.trim() === '') return [];
+        // Normalize full-width comma to half-width
+        const normalized = items.replace(/、/g, ',');
+        return normalized.split(',').map(item => item.trim()).filter(item => item !== '');
+    };
+
     const filteredAttendees = useMemo(() => {
         if (!debouncedQuery) return attendees;
         const lowerQuery = debouncedQuery.toLowerCase();
@@ -225,46 +233,91 @@ export default function Dashboard() {
                 ) : filteredAttendees.length === 0 ? (
                     <div className="text-center text-gray-500 py-10">No attendees found.</div>
                 ) : (
-                    filteredAttendees.map((attendee) => (
-                        <div
-                            key={attendee.id}
-                            className={`p-4 rounded-lg border ${attendee.status === 'Checked In'
-                                ? 'bg-green-900/10 border-green-900/30'
-                                : 'bg-gray-800 border-gray-700'
-                                } flex justify-between items-center transition`}
-                        >
-                            <div>
-                                <p className="text-gray-400 text-xs uppercase font-semibold mb-1">
-                                    {attendee.company}
-                                </p>
-                                <h3 className="text-lg font-bold text-white leading-tight mb-1">
-                                    {attendee.name}
-                                </h3>
-                                {attendee.itemsToHandOut && (
-                                    <div className="text-xs text-yellow-500 bg-yellow-500/10 inline-block px-2 py-0.5 rounded mt-1">
-                                        🎁 {attendee.itemsToHandOut}
-                                    </div>
-                                )}
-                            </div>
+                    filteredAttendees.map((attendee) => {
+                        const itemsArray = parseItemsToHandOut(attendee.itemsToHandOut);
 
-                            <div>
-                                {attendee.status === 'Checked In' ? (
-                                    <div className="flex flex-col items-end text-green-500">
-                                        <UserCheck size={24} />
-                                        <span className="text-xs mt-1">Done</span>
+                        return (
+                            <div
+                                key={attendee.id}
+                                className={`p-4 rounded-lg border ${attendee.status === 'Checked In'
+                                    ? 'bg-green-900/10 border-green-900/30'
+                                    : 'bg-gray-800 border-gray-700'
+                                    } flex justify-between items-center transition`}
+                            >
+                                <div className="flex-1">
+                                    <p className="text-gray-400 text-xs uppercase font-semibold mb-1">
+                                        {attendee.company}
+                                    </p>
+                                    <h3 className="text-lg font-bold text-white leading-tight mb-1">
+                                        {attendee.name}
+                                    </h3>
+
+                                    {/* Name Kana */}
+                                    {attendee.nameKana && (
+                                        <p className="text-xs text-gray-500 mb-2">
+                                            {attendee.nameKana}
+                                        </p>
+                                    )}
+
+                                    {/* Multiple item badges */}
+                                    {itemsArray.length > 0 && (
+                                        <div className="flex flex-wrap gap-1 mb-2">
+                                            {itemsArray.map((item, idx) => (
+                                                <span
+                                                    key={idx}
+                                                    className="text-xs text-yellow-500 bg-yellow-500/10 px-2 py-0.5 rounded"
+                                                >
+                                                    🎁 {item}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {/* Attribute information */}
+                                    <div className="flex gap-3 mt-2">
+                                        {attendee.tshirtSize && (
+                                            <div className="flex items-center gap-1 text-xs text-blue-400 bg-blue-400/10 px-2 py-0.5 rounded">
+                                                <span>👕</span>
+                                                <span>{attendee.tshirtSize}</span>
+                                            </div>
+                                        )}
+
+                                        {attendee.attendsReception && (
+                                            <div className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded ${
+                                                attendee.attendsReception === 'はい' || attendee.attendsReception === 'Yes'
+                                                    ? 'text-green-400 bg-green-400/10'
+                                                    : 'text-gray-400 bg-gray-400/10'
+                                            }`}>
+                                                <span>🍽️</span>
+                                                <span>
+                                                    {attendee.attendsReception === 'はい' || attendee.attendsReception === 'Yes'
+                                                        ? '懇親会参加'
+                                                        : '懇親会不参加'}
+                                                </span>
+                                            </div>
+                                        )}
                                     </div>
-                                ) : (
-                                    <button
-                                        onClick={() => handleCheckIn(attendee.id, attendee.name)}
-                                        disabled={checkingIn === attendee.id}
-                                        className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition disabled:opacity-50 text-sm"
-                                    >
-                                        {checkingIn === attendee.id ? '...' : 'Check In'}
-                                    </button>
-                                )}
+                                </div>
+
+                                <div>
+                                    {attendee.status === 'Checked In' ? (
+                                        <div className="flex flex-col items-end text-green-500">
+                                            <UserCheck size={24} />
+                                            <span className="text-xs mt-1">Done</span>
+                                        </div>
+                                    ) : (
+                                        <button
+                                            onClick={() => handleCheckIn(attendee.id, attendee.name)}
+                                            disabled={checkingIn === attendee.id}
+                                            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition disabled:opacity-50 text-sm"
+                                        >
+                                            {checkingIn === attendee.id ? '...' : 'Check In'}
+                                        </button>
+                                    )}
+                                </div>
                             </div>
-                        </div>
-                    ))
+                        );
+                    })
                 )}
             </div>
         </div>

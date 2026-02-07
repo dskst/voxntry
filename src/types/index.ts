@@ -7,6 +7,8 @@ export interface Attendee {
   status: 'Checked In' | 'Not Checked In';
   timeStamp?: string;
   staffName?: string;
+  tshirtSize?: string; // Optional: T-shirt size (S, M, L, XL, XXL, etc.)
+  attendsReception?: string; // Optional: Reception attendance ("はい" | "いいえ" or "Yes" | "No")
 }
 
 export interface SheetColumnMapping {
@@ -20,6 +22,9 @@ export interface SheetColumnMapping {
     status: number;
     timeStamp: number;
     staffName: number;
+    nameKana?: number; // Optional: Name in kana
+    tshirtSize?: number; // Optional: T-shirt size column
+    attendsReception?: number; // Optional: Reception attendance column
   };
 }
 
