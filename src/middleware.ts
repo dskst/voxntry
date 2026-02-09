@@ -3,6 +3,9 @@ import type { NextRequest } from 'next/server';
 import { verifyJWT } from '@/lib/jwt';
 import { verifyCsrfToken, verifyOrigin } from '@/lib/csrf';
 
+// Force Node.js runtime for crypto module support
+export const runtime = 'nodejs';
+
 /**
  * Middleware to verify JWT tokens and CSRF tokens for protected API routes
  */
@@ -85,7 +88,5 @@ export const config = {
   matcher: [
     '/api/attendees',
     '/api/attendees/:path*',
-    '/api/ocr',
-    '/api/transcribe',
   ],
 };

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAttendees } from '@/lib/google-sheets';
-import { getConference } from '@/config/conferences';
+import { getConferences, getConference } from '@/lib/config-loader';
 
 export async function GET(request: Request) {
   // Get verified user information from middleware-injected headers
@@ -10,7 +10,8 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const conference = getConference(conferenceId);
+  const conferences = getConferences();
+  const conference = getConference(conferenceId, conferences);
   if (!conference) {
     return NextResponse.json({ error: 'Conference not found' }, { status: 404 });
   }

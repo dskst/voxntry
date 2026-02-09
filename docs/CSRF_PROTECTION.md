@@ -35,8 +35,6 @@ All API endpoints that modify state are protected:
 - `/api/auth/login` - Login (protected against Login CSRF)
 - `/api/attendees/checkin` - Check-in attendees
 - `/api/attendees/checkout` - Check-out attendees
-- `/api/ocr` - OCR processing (if state-changing)
-- `/api/transcribe` - Audio transcription (if state-changing)
 
 ## Client-Side Implementation
 

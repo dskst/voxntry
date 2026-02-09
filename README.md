@@ -1,14 +1,12 @@
 # VOXNTRY
 
-Conference reception management system - Efficient attendee check-in tool with voice input and OCR features
+Conference reception management system - Efficient attendee check-in tool
 
 [日本語版 README はこちら](README_ja.md)
 
 ## Features
 
 - Attendee check-in/check-out management
-- Voice input search
-- Business card OCR
 - Google Sheets integration
 - Real-time attendee status updates
 
@@ -27,7 +25,21 @@ cd voxntry
 npm install
 ```
 
-### 3. Environment Variables Configuration
+### 3. Conference Configuration
+
+Configure your conference settings:
+
+```bash
+# Copy the example configuration file
+cp config/conferences.example.json config/conferences.json
+
+# Edit with your conference details
+# Replace placeholder values with your actual configuration
+```
+
+**Important**: The `config/conferences.json` file contains your conference-specific settings and is ignored by Git for security.
+
+### 4. Environment Variables Configuration
 
 Copy `.env.example` to `.env.local` and configure required values:
 
@@ -66,15 +78,12 @@ npm run hash-password "yourSecurePassword"
 # JWT Secret (REQUIRED)
 JWT_SECRET=dev-secret-key-minimum-32-characters
 
-# Conference Authentication - Plain-text for development
-CONFERENCE_DEMO_CONF_PASSWORD=devpassword123
-
-# Google Sheets (REQUIRED)
-NEXT_PUBLIC_DEMO_SPREADSHEET_ID=your-spreadsheet-id
+# Conference Password (matches passwordEnvVar in conferences.json)
+CONFERENCE_YOUR_CONF_PASSWORD=devpassword123
 
 # Development Auto-Login (Optional)
 NEXT_PUBLIC_DEV_AUTO_LOGIN=true
-NEXT_PUBLIC_DEV_CONFERENCE_ID=demo-conf
+NEXT_PUBLIC_DEV_CONFERENCE_ID=your-conference-id
 NEXT_PUBLIC_DEV_PASSWORD=devpassword123
 NEXT_PUBLIC_DEV_STAFF_NAME=DevUser
 ```
@@ -84,15 +93,14 @@ NEXT_PUBLIC_DEV_STAFF_NAME=DevUser
 # JWT Secret (Generate with: openssl rand -base64 32)
 JWT_SECRET=your-generated-secret-here-minimum-32-chars
 
-# Conference Authentication - bcrypt hash REQUIRED
-CONFERENCE_DEMO_CONF_PASSWORD=$2b$12$...generatedHashHere...
-
-# Google Sheets
-NEXT_PUBLIC_DEMO_SPREADSHEET_ID=your-spreadsheet-id
+# Conference Password - bcrypt hash REQUIRED
+CONFERENCE_YOUR_CONF_PASSWORD=$2b$12$...generatedHashHere...
 
 # Development Auto-Login (Disabled in production)
 NEXT_PUBLIC_DEV_AUTO_LOGIN=false
 ```
+
+**Note**: The `passwordEnvVar` field in `config/conferences.json` must match the environment variable name you set here.
 
 **Security Notes**:
 - 🔴 **Always use bcrypt hash in production**
@@ -100,7 +108,7 @@ NEXT_PUBLIC_DEV_AUTO_LOGIN=false
 - Never commit `.env.local` files to git
 - Auto-login feature is automatically disabled in production
 
-### 4. Google Authentication Setup
+### 5. Google Authentication Setup
 
 #### Local Development
 
@@ -130,7 +138,7 @@ gcloud config set project YOUR_PROJECT_ID
 - Managed Identity is automatically used (no additional configuration required)
 - Grant Google Sheets API access to the Cloud Run service account
 
-### 5. Start Development Server
+### 6. Start Development Server
 
 ```bash
 npm run dev

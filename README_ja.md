@@ -1,12 +1,10 @@
 # VOXNTRY
 
-カンファレンス受付管理システム - 音声入力とOCR機能を備えた効率的な参加者チェックインツール
+カンファレンス受付管理システム - 効率的な参加者チェックインツール
 
 ## 機能
 
 - 参加者チェックイン/チェックアウト管理
-- 音声入力による検索
-- 名刺OCR機能
 - Google Sheets連携
 - リアルタイム参加者ステータス更新
 
@@ -25,7 +23,21 @@ cd voxntry
 npm install
 ```
 
-### 3. 環境変数の設定
+### 3. カンファレンス設定
+
+カンファレンス設定を行います：
+
+```bash
+# サンプル設定ファイルをコピー
+cp config/conferences.example.json config/conferences.json
+
+# エディタで開いて、カンファレンス情報を編集
+# プレースホルダーの値を実際の設定に置き換えてください
+```
+
+**重要**: `config/conferences.json` ファイルはカンファレンス固有の設定を含むため、Gitで管理されません。
+
+### 4. 環境変数の設定
 
 `.env.example` を `.env.local` にコピーして、必要な値を設定します：
 
@@ -61,36 +73,32 @@ npm run hash-password "yourSecurePassword"
 
 **開発環境:**
 ```bash
-# JWT Secret (REQUIRED)
+# JWT Secret (必須)
 JWT_SECRET=dev-secret-key-minimum-32-characters
 
-# Conference Authentication - Plain-text for development
-CONFERENCE_DEMO_CONF_PASSWORD=devpassword123
+# カンファレンスパスワード（conferences.jsonのpasswordEnvVarと一致させる）
+CONFERENCE_YOUR_CONF_PASSWORD=devpassword123
 
-# Google Sheets (REQUIRED)
-NEXT_PUBLIC_DEMO_SPREADSHEET_ID=your-spreadsheet-id
-
-# Development Auto-Login (Optional)
+# 開発環境の自動ログイン（オプション）
 NEXT_PUBLIC_DEV_AUTO_LOGIN=true
-NEXT_PUBLIC_DEV_CONFERENCE_ID=demo-conf
+NEXT_PUBLIC_DEV_CONFERENCE_ID=your-conference-id
 NEXT_PUBLIC_DEV_PASSWORD=devpassword123
 NEXT_PUBLIC_DEV_STAFF_NAME=DevUser
 ```
 
 **本番環境:**
 ```bash
-# JWT Secret (Generate with: openssl rand -base64 32)
+# JWT Secret (openssl rand -base64 32 で生成)
 JWT_SECRET=your-generated-secret-here-minimum-32-chars
 
-# Conference Authentication - bcrypt hash REQUIRED
-CONFERENCE_DEMO_CONF_PASSWORD=$2b$12$...generatedHashHere...
+# カンファレンスパスワード - bcryptハッシュが必須
+CONFERENCE_YOUR_CONF_PASSWORD=$2b$12$...generatedHashHere...
 
-# Google Sheets
-NEXT_PUBLIC_DEMO_SPREADSHEET_ID=your-spreadsheet-id
-
-# Development Auto-Login (Disabled in production)
+# 開発環境の自動ログイン（本番では無効）
 NEXT_PUBLIC_DEV_AUTO_LOGIN=false
 ```
+
+**注意**: `config/conferences.json` の `passwordEnvVar` フィールドは、ここで設定する環境変数名と一致させる必要があります。
 
 **セキュリティ注意事項**:
 - 🔴 **本番環境では必ずbcryptハッシュを使用**してください
@@ -98,7 +106,7 @@ NEXT_PUBLIC_DEV_AUTO_LOGIN=false
 - `.env.local` ファイルは絶対にgitにコミットしないでください
 - 開発環境の自動ログイン機能は本番環境では無効になります
 
-### 4. Google認証の設定
+### 5. Google認証の設定
 
 #### ローカル開発環境
 
@@ -128,7 +136,7 @@ gcloud config set project YOUR_PROJECT_ID
 - Managed Identityが自動的に使用されます（追加設定不要）
 - Cloud RunのサービスアカウントにGoogle Sheets APIへのアクセス権限を付与してください
 
-### 5. 開発サーバーの起動
+### 6. 開発サーバーの起動
 
 ```bash
 npm run dev

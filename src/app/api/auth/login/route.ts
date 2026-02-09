@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { conferences } from '@/config/conferences';
+import { getConferences, getConference } from '@/lib/config-loader';
 import bcrypt from 'bcrypt';
 import { signJWT } from '@/lib/jwt';
 import { LoginRequestSchema } from '@/schemas/api';
@@ -41,8 +41,9 @@ export async function POST(request: Request) {
 
   const { conferenceId, password, staffName } = data;
 
-  // Find conference by ID
-  const conference = conferences.find((c) => c.id === conferenceId);
+  // Load conferences and find by ID
+  const conferences = getConferences();
+  const conference = getConference(conferenceId, conferences);
 
   if (!conference) {
     return NextResponse.json(

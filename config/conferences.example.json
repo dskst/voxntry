@@ -1,0 +1,71 @@
+{
+  "_comment": "This is a template file. Copy this to conferences.json and configure your settings.",
+  "_setup_instructions": [
+    "1. Copy this file to config/conferences.json",
+    "2. Replace placeholder values with your actual configuration",
+    "3. Set the password environment variable in .env.local",
+    "4. Adjust sheet column mappings to match your Google Spreadsheet structure"
+  ],
+  "conferences": [
+    {
+      "id": "your-conference-id",
+      "name": "Your Conference Name 2025",
+      "passwordEnvVar": "CONFERENCE_YOUR_CONF_PASSWORD",
+      "spreadsheetId": "your-google-spreadsheet-id",
+      "sheetConfig": {
+        "sheetName": "シート1",
+        "startRow": 2,
+        "columns": {
+          "id": 0,
+          "attribute": 1,
+          "affiliation": 2,
+          "name": 3,
+          "nameKana": 4,
+          "items": 5,
+          "bodySize": 6,
+          "novelties": 7,
+          "memo": 8,
+          "attendsReception": 9,
+          "checkedIn": 10,
+          "checkedInAt": 11,
+          "staffName": 12
+        }
+      }
+    }
+  ],
+  "_environment_variables": {
+    "_note": "Add these to your .env.local file",
+    "required": [
+      "JWT_SECRET=your-generated-jwt-secret-minimum-32-chars",
+      "CONFERENCE_YOUR_CONF_PASSWORD=your-bcrypt-hashed-password"
+    ],
+    "_generation_commands": {
+      "jwt_secret": "openssl rand -base64 32",
+      "password_hash": "npm run hash-password \"yourPassword\""
+    }
+  },
+  "_google_spreadsheet_setup": {
+    "_note": "Your Google Spreadsheet should have the following structure",
+    "required_columns": [
+      "Column A (0): ID - Unique identifier for each attendee",
+      "Column D (3): Name - Attendee's full name",
+      "Column K (10): CheckedIn - Boolean or status field",
+      "Column L (11): CheckedInAt - Timestamp field",
+      "Column M (12): StaffName - Staff who performed check-in"
+    ],
+    "optional_columns": [
+      "Column B (1): Attribute - Attendee type (Speaker, Sponsor, etc.)",
+      "Column C (2): Affiliation - Company or organization",
+      "Column E (4): NameKana - Name in kana (Japanese)",
+      "Column F (5): Items - Items to hand out",
+      "Column G (6): BodySize - T-shirt or merchandise size",
+      "Column H (7): Novelties - Additional novelty items",
+      "Column I (8): Memo - Staff notes",
+      "Column J (9): AttendsReception - Reception attendance flag"
+    ]
+  },
+  "_column_mapping_guide": {
+    "_note": "Column indices are zero-based (A=0, B=1, C=2, ...)",
+    "example": "If your 'Name' column is in column E, set 'name': 4"
+  }
+}

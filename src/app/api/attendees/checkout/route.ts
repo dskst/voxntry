@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { checkOutAttendee } from '@/lib/google-sheets';
-import { getConference } from '@/config/conferences';
+import { getConferences, getConference } from '@/lib/config-loader';
 import { CheckOutRequestSchema } from '@/schemas/api';
 import { validateRequestBody } from '@/lib/validation';
 
@@ -12,7 +12,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const conference = getConference(conferenceId);
+  const conferences = getConferences();
+  const conference = getConference(conferenceId, conferences);
   if (!conference) {
     return NextResponse.json({ error: 'Conference not found' }, { status: 404 });
   }
