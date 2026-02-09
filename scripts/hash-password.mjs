@@ -7,23 +7,23 @@
  * Use the generated hash as the value for CONFERENCE_*_PASSWORD environment variables.
  *
  * Usage:
- *   node scripts/hash-password.js <password>
+ *   node scripts/hash-password.mjs <password>
  *
  * Example:
- *   node scripts/hash-password.js "mySecurePassword123"
+ *   node scripts/hash-password.mjs "mySecurePassword123"
  *
  * Then update your .env.local:
  *   CONFERENCE_DEMO_CONF_PASSWORD=$2b$12$...generatedHash...
  */
 
-const bcrypt = require('bcrypt');
+import bcrypt from 'bcrypt';
 
 const SALT_ROUNDS = 12;
 
 async function hashPassword(password) {
   if (!password) {
     console.error('❌ Error: Password is required');
-    console.log('\nUsage: node scripts/hash-password.js <password>');
+    console.log('\nUsage: node scripts/hash-password.mjs <password>');
     process.exit(1);
   }
 
@@ -54,8 +54,8 @@ const password = process.argv[2];
 
 if (!password) {
   console.error('❌ Error: No password provided');
-  console.log('\nUsage: node scripts/hash-password.js <password>');
-  console.log('Example: node scripts/hash-password.js "mySecurePassword123"');
+  console.log('\nUsage: node scripts/hash-password.mjs <password>');
+  console.log('Example: node scripts/hash-password.mjs "mySecurePassword123"');
   process.exit(1);
 }
 
