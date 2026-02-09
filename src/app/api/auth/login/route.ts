@@ -4,8 +4,36 @@ import bcrypt from 'bcrypt';
 import { signJWT } from '@/lib/jwt';
 import { LoginRequestSchema } from '@/schemas/api';
 import { validateRequestBody } from '@/lib/validation';
+import { rateLimit, getClientIp } from '@/lib/rate-limit';
+
+// Create rate limiter instance
+// 5 login attempts per minute per IP address
+const limiter = rateLimit({
+  interval: 60 * 1000, // 1 minute
+  uniqueTokenPerInterval: 500, // Track up to 500 unique IPs
+});
 
 export async function POST(request: Request) {
+  // Rate limiting check (before expensive operations)
+  const clientIp = getClientIp(request);
+
+  try {
+    await limiter.check(5, clientIp); // 5 requests per minute
+  } catch {
+    return NextResponse.json(
+      {
+        error: 'Too many login attempts. Please try again later.',
+        retryAfter: 60, // seconds
+      },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': '60',
+        },
+      }
+    );
+  }
+
   // Validate request body with Zod
   const { data, error } = await validateRequestBody(request, LoginRequestSchema);
   if (error) return error;
