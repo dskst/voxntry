@@ -5,6 +5,7 @@ import { signJWT } from '@/lib/jwt';
 import { LoginRequestSchema } from '@/schemas/api';
 import { validateRequestBody } from '@/lib/validation';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
+import { generateCsrfToken } from '@/lib/csrf';
 
 // Create rate limiter instance
 // 5 login attempts per minute per IP address
@@ -100,7 +101,7 @@ export async function POST(request: Request) {
     const cookieOptions = {
       httpOnly: true, // Prevents JavaScript access (XSS protection)
       secure: isProduction, // HTTPS only in production
-      sameSite: (isProduction ? 'strict' : 'lax') as const, // Use 'lax' in development for compatibility
+      sameSite: 'strict' as const, // Always use 'strict' for CSRF protection
       path: '/',
       maxAge: 60 * 60 * 24, // 24 hours (matches JWT expiration)
     };
@@ -108,6 +109,17 @@ export async function POST(request: Request) {
     response.cookies.set('auth_token', token, cookieOptions);
     console.log('Cookie set with options:', cookieOptions);
     console.log('Token length:', token.length);
+
+    // Generate and set CSRF token (Double Submit Cookie pattern)
+    const csrfToken = generateCsrfToken();
+    response.cookies.set('csrf_token', csrfToken, {
+      httpOnly: false, // Must be readable by JavaScript
+      secure: isProduction,
+      sameSite: 'strict' as const,
+      path: '/',
+      maxAge: 60 * 60 * 24, // 24 hours (same as auth_token)
+    });
+    console.log('CSRF token generated and set');
 
     return response;
   } catch (error) {

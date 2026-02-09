@@ -5,6 +5,7 @@ import { Attendee } from '@/types';
 import { Search, UserCheck, RefreshCw, LogOut, X, CheckCircle2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { filterAttendees, SearchableField } from '@/utils/search';
+import { api } from '@/lib/api-client';
 
 export default function Dashboard() {
     const router = useRouter();
@@ -22,9 +23,7 @@ export default function Dashboard() {
             console.log('Fetching attendees...');
 
             // Fetch attendees - middleware will handle authentication
-            const res = await fetch('/api/attendees', {
-                credentials: 'same-origin',
-            });
+            const res = await api.get('/api/attendees');
             console.log('Fetch attendees response status:', res.status);
             if (res.status === 401) {
                 console.error('Unauthorized - no valid token');
@@ -83,13 +82,8 @@ export default function Dashboard() {
 
         setCheckingIn(confirmModalData.id);
         try {
-            const res = await fetch('/api/attendees/checkin', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                credentials: 'same-origin',
-                body: JSON.stringify({ rowId: confirmModalData.id }),
+            const res = await api.post('/api/attendees/checkin', {
+                rowId: confirmModalData.id,
             });
 
             if (res.ok) {
@@ -102,6 +96,10 @@ export default function Dashboard() {
                     )
                 );
                 setConfirmModalData(null); // Close modal
+            } else if (res.status === 403) {
+                // CSRF token validation failed - refresh page to get new token
+                alert('セッションが更新されました。もう一度お試しください');
+                window.location.reload();
             } else {
                 alert('Check-in failed');
             }
@@ -118,14 +116,7 @@ export default function Dashboard() {
 
         setCancelingCheckIn(id);
         try {
-            const res = await fetch('/api/attendees/checkout', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                credentials: 'same-origin',
-                body: JSON.stringify({ rowId: id }),
-            });
+            const res = await api.post('/api/attendees/checkout', { rowId: id });
 
             if (res.ok) {
                 // Optimistic update
@@ -134,6 +125,10 @@ export default function Dashboard() {
                         a.id === id ? { ...a, checkedIn: false, checkedInAt: undefined } : a
                     )
                 );
+            } else if (res.status === 403) {
+                // CSRF token validation failed - refresh page to get new token
+                alert('セッションが更新されました。もう一度お試しください');
+                window.location.reload();
             } else {
                 alert('Cancel check-in failed');
             }

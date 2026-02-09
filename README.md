@@ -192,6 +192,14 @@ gcloud run services update voxntry \
 - `sameSite: strict`: CSRF攻撃からの保護
 - JWT トークンをhttpOnly Cookieで安全に保存
 
+### CSRF保護（New!）
+- **Double Submit Cookie Pattern**: CSRFトークンによる二重検証
+- **Origin/Referer検証**: クロスオリジンリクエストのブロック
+- **Defense in Depth**: 多層防御戦略による包括的な保護
+- **自動適用**: 全ての状態変更操作（POST/PUT/DELETE/PATCH）を自動保護
+- **ユーザー影響ゼロ**: 透過的な実装でUXへの影響なし
+- 詳細は [docs/CSRF_PROTECTION.md](docs/CSRF_PROTECTION.md) を参照
+
 ### 本番環境要件
 - HTTPS 必須
 - GCP Secret Manager推奨（環境変数の代わりに）

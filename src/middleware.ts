@@ -1,13 +1,43 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { verifyJWT } from '@/lib/jwt';
+import { verifyCsrfToken, verifyOrigin } from '@/lib/csrf';
 
 /**
- * Middleware to verify JWT tokens for protected API routes
+ * Middleware to verify JWT tokens and CSRF tokens for protected API routes
  */
 export async function middleware(request: NextRequest) {
   console.log('=== Middleware called for:', request.nextUrl.pathname);
   console.log('NODE_ENV:', process.env.NODE_ENV);
+
+  // CSRF Protection: Verify origin for state-changing operations
+  if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(request.method)) {
+    const origin = request.headers.get('origin');
+    const referer = request.headers.get('referer');
+    const host = request.headers.get('host');
+
+    if (!verifyOrigin(origin, referer, host)) {
+      console.error('CSRF: Origin/Referer verification failed');
+      console.error('Origin:', origin, 'Referer:', referer, 'Host:', host);
+      return NextResponse.json(
+        { error: 'Forbidden - Invalid request origin' },
+        { status: 403 }
+      );
+    }
+
+    // CSRF Protection: Verify CSRF token (Double Submit Cookie pattern)
+    const csrfCookie = request.cookies.get('csrf_token')?.value;
+    const csrfHeader = request.headers.get('x-csrf-token');
+
+    if (!verifyCsrfToken(csrfCookie, csrfHeader)) {
+      console.error('CSRF: Token verification failed');
+      console.error('Cookie present:', !!csrfCookie, 'Header present:', !!csrfHeader);
+      return NextResponse.json(
+        { error: 'Forbidden - Invalid CSRF token' },
+        { status: 403 }
+      );
+    }
+  }
 
   // Get JWT token from cookie
   const token = request.cookies.get('auth_token')?.value;
