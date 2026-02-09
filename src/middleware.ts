@@ -43,7 +43,7 @@ export async function middleware(request: NextRequest) {
   // Token is valid - add user information to request headers
   // This allows API routes to access verified user data
   const requestHeaders = new Headers(request.headers);
-  const userHeaders = createUserHeaders(authResult.payload);
+  const userHeaders = createUserHeaders(authResult.payload!);
 
   Object.entries(userHeaders).forEach(([key, value]) => {
     requestHeaders.set(key, value);

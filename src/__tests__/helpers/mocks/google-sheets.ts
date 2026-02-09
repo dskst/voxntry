@@ -19,7 +19,7 @@
  *   4. Re-run all tests
  */
 
-import { vi } from 'vitest';
+import { vi, expect } from 'vitest';
 
 /**
  * Mock Google Auth client

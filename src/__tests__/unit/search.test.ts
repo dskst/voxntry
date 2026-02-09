@@ -347,7 +347,8 @@ describe('Search Utilities - Comprehensive Unit Tests', () => {
         ];
 
         const results = filterAttendees(items as Array<Record<string, unknown>>, 'test', {
-          fields: ['name', 'count'] as Array<keyof Record<string, unknown>>,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          fields: ['name', 'count'] as any,
         });
         expect(results).toHaveLength(1);
       });

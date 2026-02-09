@@ -64,7 +64,7 @@ export function createTestRequest(options: TestRequestOptions = {}): NextRequest
     init.body = JSON.stringify(body);
   }
 
-  return new NextRequest(url, init);
+  return new NextRequest(url, init as RequestInit);
 }
 
 /**
@@ -207,7 +207,7 @@ export function assertResponseStatus(
     );
   }
 
-  if (expectedBodyKeys) {
+  if (expectedBodyKeys && response.body && typeof response.body === 'object') {
     const missingKeys = expectedBodyKeys.filter(key => !(key in response.body));
     if (missingKeys.length > 0) {
       throw new Error(

@@ -333,7 +333,7 @@ describe('CSRF - Comprehensive Unit Tests', () => {
       });
 
       it('should reject when host is undefined', () => {
-        const isValid = verifyOrigin('http://localhost:3000', null, undefined);
+        const isValid = verifyOrigin('http://localhost:3000', null, null);
 
         expect(isValid).toBe(false);
       });

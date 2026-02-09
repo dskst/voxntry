@@ -10,7 +10,6 @@ import {
   INVALID_JWT_TOKEN,
   getValidTokenPayload,
 } from '@/__tests__/helpers/fixtures/auth-tokens';
-import type { AuthPayload } from '@/lib/jwt';
 
 // Mock the JWT library to avoid jose/vitest compatibility issues
 vi.mock('@/lib/jwt', () => ({
@@ -18,7 +17,7 @@ vi.mock('@/lib/jwt', () => ({
 }));
 
 describe('GET /api/auth/verify', () => {
-  let mockVerifyJWT: Mock<[], Promise<AuthPayload | null>>;
+  let mockVerifyJWT: Mock;
 
   beforeEach(async () => {
     // Set JWT secret for token verification
@@ -26,7 +25,7 @@ describe('GET /api/auth/verify', () => {
 
     // Get the mocked verifyJWT function
     const jwtModule = await import('@/lib/jwt');
-    mockVerifyJWT = jwtModule.verifyJWT as Mock<[], Promise<AuthPayload | null>>;
+    mockVerifyJWT = jwtModule.verifyJWT as Mock;
     mockVerifyJWT.mockReset();
   });
 
