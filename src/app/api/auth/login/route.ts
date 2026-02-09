@@ -89,7 +89,12 @@ export async function POST(request: Request) {
     });
 
     // Set JWT token in httpOnly cookie
-    const response = NextResponse.json({ success: true, conference });
+    // Remove password from response for security
+    const { password: _, ...conferenceWithoutPassword } = conference;
+    const response = NextResponse.json({
+      success: true,
+      conference: conferenceWithoutPassword
+    });
 
     const isProduction = process.env.NODE_ENV === 'production';
     const cookieOptions = {
