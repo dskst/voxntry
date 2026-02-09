@@ -160,28 +160,61 @@ NEXT_PUBLIC_DEV_AUTO_LOGIN=false
 
 ## Production Deployment
 
-### Deploy to GCP Cloud Run
+### Quick Start: Deploy to GCP Cloud Run
 
-1. **Configure Environment Variables:**
+⏱️ Time required: ~15 minutes
+
+Use automated deployment scripts for easy Cloud Run deployment:
 
 ```bash
-gcloud run services update voxntry \
-  --set-env-vars "CONFERENCE_DEMO_CONF_PASSWORD=<secure-password>" \
-  --set-env-vars "NEXT_PUBLIC_DEMO_SPREADSHEET_ID=<your-spreadsheet-id>" \
+# 1. Setup Secret Manager
+./scripts/setup-secrets.sh
+
+# 2. Deploy to Cloud Run
+./scripts/deploy-cloud-run.sh
+```
+
+#### Detailed Documentation
+
+- **[Quick Start Guide](docs/QUICKSTART_CLOUD_RUN.md)** - Fast deployment steps
+- **[Complete Deployment Guide](docs/DEPLOY_CLOUD_RUN.md)** - Comprehensive deployment steps and troubleshooting
+- **[Scripts Documentation](scripts/README.md)** - Deployment script details
+
+### Manual Deployment
+
+If you prefer manual deployment without scripts:
+
+1. **Configure Secret Manager:**
+
+```bash
+# Create JWT Secret
+echo -n "your-jwt-secret" | gcloud secrets create jwt-secret --data-file=-
+
+# Create conference password (bcrypt hash)
+npm run hash-password "yourPassword"
+echo -n '$2b$12$...' | gcloud secrets create conference-password --data-file=-
+```
+
+2. **Deploy to Cloud Run:**
+
+```bash
+# Build image
+gcloud builds submit --tag gcr.io/PROJECT_ID/voxntry
+
+# Deploy to Cloud Run
+gcloud run deploy voxntry \
+  --image gcr.io/PROJECT_ID/voxntry \
+  --region asia-northeast1 \
+  --platform managed \
+  --allow-unauthenticated \
   --set-env-vars "NODE_ENV=production" \
-  --set-env-vars "GCP_PROJECT_ID=<your-project-id>"
+  --set-secrets "JWT_SECRET=jwt-secret:latest" \
+  --set-secrets "CONFERENCE_YOUR_CONF_PASSWORD=conference-password:latest"
 ```
 
-2. **(Recommended) Use GCP Secret Manager:**
+3. **Configure Google Sheets Access:**
 
-```bash
-# Create Secret
-echo -n "secure-password" | gcloud secrets create demo-conf-password --data-file=-
-
-# Mount Secret to Cloud Run
-gcloud run services update voxntry \
-  --update-secrets "CONFERENCE_DEMO_CONF_PASSWORD=demo-conf-password:latest"
-```
+   - Grant Editor permission to the service account on your Spreadsheet
 
 ## Tech Stack
 
@@ -215,15 +248,15 @@ voxntry/
 
 ## Security Policy
 
-For details, see [SECURITY.md](SECURITY.md).
+For details, see [docs/SECURITY.md](docs/SECURITY.md).
 
 ## Contributing
 
-Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting a pull request.
+Contributions are welcome! Please read [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) before submitting a pull request.
 
 ## Code of Conduct
 
-This project adopts the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md). By participating, you agree to abide by this code of conduct.
+This project adopts the [Contributor Covenant Code of Conduct](docs/CODE_OF_CONDUCT.md). By participating, you agree to abide by this code of conduct.
 
 ## License
 

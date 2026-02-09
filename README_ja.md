@@ -2,6 +2,8 @@
 
 カンファレンス受付管理システム - 効率的な参加者チェックインツール
 
+[English README is here](README.md)
+
 ## 機能
 
 - 参加者チェックイン/チェックアウト管理
@@ -158,28 +160,61 @@ NEXT_PUBLIC_DEV_AUTO_LOGIN=false
 
 ## 本番環境へのデプロイ
 
-### GCP Cloud Runへのデプロイ
+### クイックスタート: GCP Cloud Runへのデプロイ
 
-1. **環境変数の設定:**
+⏱️ 所要時間: 約15分
+
+自動化されたデプロイスクリプトを使用して、簡単にCloud Runへデプロイできます：
 
 ```bash
-gcloud run services update voxntry \
-  --set-env-vars "CONFERENCE_DEMO_CONF_PASSWORD=<secure-password>" \
-  --set-env-vars "NEXT_PUBLIC_DEMO_SPREADSHEET_ID=<your-spreadsheet-id>" \
+# 1. Secret Manager のセットアップ
+./scripts/setup-secrets.sh
+
+# 2. Cloud Run へデプロイ
+./scripts/deploy-cloud-run.sh
+```
+
+#### 詳細なドキュメント
+
+- **[クイックスタートガイド](docs/QUICKSTART_CLOUD_RUN.md)** - 最速でデプロイする手順
+- **[完全デプロイガイド](docs/DEPLOY_CLOUD_RUN.md)** - 包括的なデプロイ手順とトラブルシューティング
+- **[スクリプトドキュメント](scripts/README.md)** - デプロイスクリプトの詳細
+
+### 手動デプロイ
+
+スクリプトを使わず手動でデプロイする場合：
+
+1. **Secret Manager の設定:**
+
+```bash
+# JWT Secret を作成
+echo -n "your-jwt-secret" | gcloud secrets create jwt-secret --data-file=-
+
+# 会議パスワード（bcryptハッシュ）を作成
+npm run hash-password "yourPassword"
+echo -n '$2b$12$...' | gcloud secrets create conference-password --data-file=-
+```
+
+2. **Cloud Run へデプロイ:**
+
+```bash
+# イメージをビルド
+gcloud builds submit --tag gcr.io/PROJECT_ID/voxntry
+
+# Cloud Run にデプロイ
+gcloud run deploy voxntry \
+  --image gcr.io/PROJECT_ID/voxntry \
+  --region asia-northeast1 \
+  --platform managed \
+  --allow-unauthenticated \
   --set-env-vars "NODE_ENV=production" \
-  --set-env-vars "GCP_PROJECT_ID=<your-project-id>"
+  --set-secrets "JWT_SECRET=jwt-secret:latest" \
+  --set-secrets "CONFERENCE_YOUR_CONF_PASSWORD=conference-password:latest"
 ```
 
-2. **（推奨）GCP Secret Managerの使用:**
+3. **Google Sheets アクセス権限の設定:**
 
-```bash
-# Secretの作成
-echo -n "secure-password" | gcloud secrets create demo-conf-password --data-file=-
-
-# Cloud RunにSecretをマウント
-gcloud run services update voxntry \
-  --update-secrets "CONFERENCE_DEMO_CONF_PASSWORD=demo-conf-password:latest"
-```
+   サービスアカウントに Spreadsheet の編集者権限を付与
 
 ## 技術スタック
 
@@ -213,15 +248,15 @@ voxntry/
 
 ## セキュリティポリシー
 
-詳細は [SECURITY.md](SECURITY.md) を参照してください。
+詳細は [docs/SECURITY.md](docs/SECURITY.md) を参照してください。
 
 ## コントリビューション
 
-コントリビューションを歓迎します！プルリクエストを送る前に、[CONTRIBUTING.md](CONTRIBUTING.md) をお読みください。
+コントリビューションを歓迎します！プルリクエストを送る前に、[docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) をお読みください。
 
 ## 行動規範
 
-このプロジェクトは [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md) を採用しています。参加することで、この行動規範を遵守することに同意したものとみなされます。
+このプロジェクトは [Contributor Covenant Code of Conduct](docs/CODE_OF_CONDUCT.md) を採用しています。参加することで、この行動規範を遵守することに同意したものとみなされます。
 
 ## ライセンス
 
