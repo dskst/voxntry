@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   // Enable standalone output for Docker/Cloud Run deployment
-  output: process.env.NODE_ENV === 'production' ? 'standalone' : undefined,
+  output: 'standalone',
 
   // Security headers
   async headers() {

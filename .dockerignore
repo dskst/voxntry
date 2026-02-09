@@ -61,12 +61,13 @@ LICENSE
 docs/
 
 # Service account keys (security)
-*.json
-!package.json
-!package-lock.json
-!tsconfig.json
-!next.config.json
-!lighthouserc.json
+# Only exclude JSON files that might contain sensitive keys
+*-key.json
+*-credentials.json
+serviceAccountKey.json
+service-account*.json
+credentials.json
+key.json
 
 # Other
 .editorconfig

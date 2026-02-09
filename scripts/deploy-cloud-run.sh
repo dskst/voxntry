@@ -42,12 +42,10 @@ if ! command_exists gcloud; then
     exit 1
 fi
 
-if ! command_exists docker; then
-    print_warning "docker is not installed. Cloud Build will be used instead."
-    USE_CLOUD_BUILD=true
-else
-    USE_CLOUD_BUILD=false
-fi
+# Always use Cloud Build for Cloud Run deployments to ensure correct architecture
+# (Local builds on ARM Macs would create incompatible images)
+USE_CLOUD_BUILD=true
+print_info "Using Cloud Build to ensure correct architecture for Cloud Run"
 
 print_success "Prerequisites check passed"
 
@@ -127,21 +125,12 @@ print_success "APIs enabled"
 
 # Build and push Docker image
 echo ""
-print_info "Building Docker image..."
+print_info "Building Docker image with Cloud Build..."
 
-if [ "$USE_CLOUD_BUILD" = true ]; then
-    print_info "Using Cloud Build..."
-    gcloud builds submit \
-        --tag ${IMAGE_NAME} \
-        --timeout=20m
-else
-    print_info "Building locally..."
-    docker build -t ${IMAGE_NAME} .
-
-    print_info "Pushing image to GCR..."
-    gcloud auth configure-docker --quiet
-    docker push ${IMAGE_NAME}
-fi
+gcloud builds submit \
+    --tag ${IMAGE_NAME} \
+    --timeout=20m \
+    --quiet
 
 print_success "Docker image built and pushed: ${IMAGE_NAME}"
 
@@ -167,11 +156,52 @@ MAX_INSTANCES=${MAX_INSTANCES:-10}
 read -p "Min instances [0]: " MIN_INSTANCES
 MIN_INSTANCES=${MIN_INSTANCES:-0}
 
+# Conference password environment variable name
+echo ""
+print_info "Conference configuration:"
+
+# Try to read conference info from conferences.json
+if [ -f "config/conferences.json" ] && command -v jq >/dev/null 2>&1; then
+    # Read conference IDs and passwordEnvVars as pairs
+    CONFERENCE_DATA=$(jq -r '.conferences[] | "\(.id)|\(.passwordEnvVar)"' config/conferences.json 2>/dev/null | grep -v '^|' | grep -v '|null$')
+
+    if [ -n "$CONFERENCE_DATA" ]; then
+        print_info "Detected conferences from conferences.json:"
+        echo "$CONFERENCE_DATA" | while IFS='|' read -r CONF_ID CONF_VAR; do
+            print_info "  - ${CONF_ID}: ${CONF_VAR} -> ${CONF_ID}-password:latest"
+        done
+        CONFERENCES_DETECTED=true
+    else
+        CONFERENCES_DETECTED=false
+    fi
+else
+    CONFERENCES_DETECTED=false
+fi
+
+# Service account configuration
+echo ""
+print_info "Service account configuration:"
+echo "  Leave empty to use default Compute Engine service account"
+echo "  Or enter custom service account email (e.g., your-sa@${PROJECT_ID}.iam.gserviceaccount.com)"
+read -p "Service account email [default]: " SERVICE_ACCOUNT_EMAIL
+
+if [ -n "$SERVICE_ACCOUNT_EMAIL" ]; then
+    print_info "Using custom service account: ${SERVICE_ACCOUNT_EMAIL}"
+else
+    print_info "Using default service account"
+fi
+
 # Build deployment command
 DEPLOY_CMD="gcloud run deploy ${SERVICE_NAME}"
 DEPLOY_CMD="${DEPLOY_CMD} --image ${IMAGE_NAME}"
 DEPLOY_CMD="${DEPLOY_CMD} --region ${REGION}"
 DEPLOY_CMD="${DEPLOY_CMD} --platform managed"
+
+# Add service account only if specified
+if [ -n "$SERVICE_ACCOUNT_EMAIL" ]; then
+    DEPLOY_CMD="${DEPLOY_CMD} --service-account ${SERVICE_ACCOUNT_EMAIL}"
+fi
+
 DEPLOY_CMD="${DEPLOY_CMD} --port 8080"
 DEPLOY_CMD="${DEPLOY_CMD} --memory ${MEMORY}"
 DEPLOY_CMD="${DEPLOY_CMD} --cpu ${CPU}"
@@ -192,20 +222,128 @@ DEPLOY_CMD="${DEPLOY_CMD} --set-env-vars NODE_ENV=production"
 if [[ $USE_SECRETS =~ ^[Yy]$ ]]; then
     print_info "Using Secret Manager for sensitive data"
     DEPLOY_CMD="${DEPLOY_CMD} --set-secrets JWT_SECRET=jwt-secret:latest"
-    DEPLOY_CMD="${DEPLOY_CMD} --set-secrets CONFERENCE_YOUR_CONF_PASSWORD=conference-password:latest"
 
-    print_warning "Make sure the following secrets exist in Secret Manager:"
-    echo "  - jwt-secret"
-    echo "  - conference-password"
-    echo ""
-    read -p "Secrets are configured? (y/N): " SECRETS_OK
-    if [[ ! $SECRETS_OK =~ ^[Yy]$ ]]; then
-        print_warning "Please create secrets first using:"
+    # Add secrets for all detected conferences
+    if [ "$CONFERENCES_DETECTED" = true ]; then
+        print_info "Mapping conference password environment variables to individual secrets:"
+        while IFS='|' read -r CONF_ID CONF_VAR; do
+            SECRET_NAME="${CONF_ID}-password"
+            DEPLOY_CMD="${DEPLOY_CMD} --set-secrets ${CONF_VAR}=${SECRET_NAME}:latest"
+            print_info "  - ${CONF_VAR} -> ${SECRET_NAME}:latest"
+        done <<< "$CONFERENCE_DATA"
+    fi
+
+    # Check if secrets exist
+    print_info "Checking if secrets exist in Secret Manager..."
+    JWT_EXISTS=$(gcloud secrets list --filter="name:jwt-secret" --format="value(name)" 2>/dev/null || echo "")
+
+    MISSING_SECRETS=()
+    [ -z "$JWT_EXISTS" ] && MISSING_SECRETS+=("jwt-secret")
+
+    # Check each conference secret
+    CONF_SECRETS_MISSING=false
+    if [ "$CONFERENCES_DETECTED" = true ]; then
+        while IFS='|' read -r CONF_ID CONF_VAR; do
+            SECRET_NAME="${CONF_ID}-password"
+            SECRET_EXISTS=$(gcloud secrets list --filter="name:${SECRET_NAME}" --format="value(name)" 2>/dev/null || echo "")
+            if [ -z "$SECRET_EXISTS" ]; then
+                CONF_SECRETS_MISSING=true
+            fi
+        done <<< "$CONFERENCE_DATA"
+    fi
+
+    if [ -z "$JWT_EXISTS" ] || [ "$CONF_SECRETS_MISSING" = true ]; then
+        print_warning "Some secrets are missing in Secret Manager:"
+        [ -z "$JWT_EXISTS" ] && echo "  ❌ jwt-secret - NOT FOUND"
+        [ -n "$JWT_EXISTS" ] && echo "  ✅ jwt-secret - exists"
+
+        if [ "$CONFERENCES_DETECTED" = true ]; then
+            while IFS='|' read -r CONF_ID CONF_VAR; do
+                SECRET_NAME="${CONF_ID}-password"
+                SECRET_EXISTS=$(gcloud secrets list --filter="name:${SECRET_NAME}" --format="value(name)" 2>/dev/null || echo "")
+                if [ -z "$SECRET_EXISTS" ]; then
+                    echo "  ❌ ${SECRET_NAME} - NOT FOUND"
+                else
+                    echo "  ✅ ${SECRET_NAME} - exists"
+                fi
+            done <<< "$CONFERENCE_DATA"
+        fi
         echo ""
-        echo "  echo -n 'your-jwt-secret' | gcloud secrets create jwt-secret --data-file=-"
-        echo "  echo -n 'your-password-hash' | gcloud secrets create conference-password --data-file=-"
+
+        read -p "Create missing secrets now? (Y/n): " CREATE_SECRETS
+        if [[ $CREATE_SECRETS =~ ^[Yy]$|^$ ]]; then
+            # Create JWT secret if missing
+            if [ -z "$JWT_EXISTS" ]; then
+                print_info "Generating and creating JWT secret..."
+                JWT_VALUE=$(openssl rand -base64 32)
+                echo -n "$JWT_VALUE" | gcloud secrets create jwt-secret --data-file=-
+                print_success "JWT secret created"
+            fi
+
+            # Create conference password secrets if missing
+            if [ "$CONFERENCES_DETECTED" = true ]; then
+                while IFS='|' read -r CONF_ID CONF_VAR; do
+                    SECRET_NAME="${CONF_ID}-password"
+                    SECRET_EXISTS=$(gcloud secrets list --filter="name:${SECRET_NAME}" --format="value(name)" 2>/dev/null || echo "")
+
+                    if [ -z "$SECRET_EXISTS" ]; then
+                        print_warning "Create password for conference: ${CONF_ID}"
+                        print_info "Generate one using: npm run hash-password \"your-password\""
+                        read -p "Password hash for ${CONF_ID}: " CONF_HASH
+                        if [ -z "$CONF_HASH" ]; then
+                            print_error "Password hash is required"
+                            exit 1
+                        fi
+                        echo -n "$CONF_HASH" | gcloud secrets create "${SECRET_NAME}" --data-file=-
+                        print_success "${SECRET_NAME} created"
+                    fi
+                done <<< "$CONFERENCE_DATA"
+            fi
+        else
+            print_warning "Please create secrets manually. For each conference:"
+            echo ""
+            if [ "$CONFERENCES_DETECTED" = true ]; then
+                while IFS='|' read -r CONF_ID CONF_VAR; do
+                    echo "  # For conference: ${CONF_ID}"
+                    echo "  npm run hash-password \"your-password-for-${CONF_ID}\""
+                    echo "  echo -n '\$2b\$12\$YOUR_HASH_HERE' | gcloud secrets create ${CONF_ID}-password --data-file=-"
+                    echo ""
+                done <<< "$CONFERENCE_DATA"
+            fi
+            exit 1
+        fi
+    else
+        print_success "All required secrets exist in Secret Manager"
         echo ""
-        exit 1
+        read -p "Do you want to update any existing secrets? (y/N): " UPDATE_SECRETS
+        if [[ $UPDATE_SECRETS =~ ^[Yy]$ ]]; then
+            # Update JWT secret
+            read -p "Update JWT secret? (y/N): " UPDATE_JWT
+            if [[ $UPDATE_JWT =~ ^[Yy]$ ]]; then
+                print_info "Generating new JWT secret..."
+                JWT_VALUE=$(openssl rand -base64 32)
+                echo -n "$JWT_VALUE" | gcloud secrets versions add jwt-secret --data-file=-
+                print_success "JWT secret updated (new version created)"
+            fi
+
+            # Update conference password secrets
+            if [ "$CONFERENCES_DETECTED" = true ]; then
+                while IFS='|' read -r CONF_ID CONF_VAR; do
+                    SECRET_NAME="${CONF_ID}-password"
+                    read -p "Update password for ${CONF_ID}? (y/N): " UPDATE_THIS
+                    if [[ $UPDATE_THIS =~ ^[Yy]$ ]]; then
+                        print_info "Generate hash using: npm run hash-password \"your-new-password\""
+                        read -p "New password hash for ${CONF_ID}: " NEW_HASH
+                        if [ -n "$NEW_HASH" ]; then
+                            echo -n "$NEW_HASH" | gcloud secrets versions add "${SECRET_NAME}" --data-file=-
+                            print_success "${SECRET_NAME} updated (new version created)"
+                        else
+                            print_warning "Empty hash provided, skipping update for ${CONF_ID}"
+                        fi
+                    fi
+                done <<< "$CONFERENCE_DATA"
+            fi
+        fi
     fi
 else
     print_warning "Environment variables will be set directly (not recommended for production)"
@@ -213,7 +351,7 @@ else
     read -p "CONFERENCE_PASSWORD (bcrypt hash): " CONF_PASSWORD
 
     DEPLOY_CMD="${DEPLOY_CMD} --set-env-vars JWT_SECRET=${JWT_SECRET}"
-    DEPLOY_CMD="${DEPLOY_CMD} --set-env-vars CONFERENCE_YOUR_CONF_PASSWORD=${CONF_PASSWORD}"
+    DEPLOY_CMD="${DEPLOY_CMD} --set-env-vars ${CONF_PASSWORD_VAR}=${CONF_PASSWORD}"
 fi
 
 # Deploy to Cloud Run

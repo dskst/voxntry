@@ -13,9 +13,14 @@ RUN npm ci --only=production && \
 FROM node:20-slim AS builder
 WORKDIR /app
 
-# Copy dependencies from deps stage
-COPY --from=deps /app/node_modules ./node_modules
+# Copy package files and install all dependencies (including devDependencies for build)
+COPY package.json package-lock.json ./
+RUN npm ci && \
+    npm cache clean --force
+
 COPY . .
+# Explicitly copy config directory to ensure conferences.json is included
+COPY config ./config
 
 # Build arguments for build-time environment variables
 ARG NODE_ENV=production
@@ -41,6 +46,7 @@ RUN addgroup --system --gid 1001 nodejs && \
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/config ./config
 
 # Switch to non-root user
 USER nextjs

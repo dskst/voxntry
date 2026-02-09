@@ -85,6 +85,8 @@ $2b$12$abcdefghijklmnopqrstuvwxyz1234567890ABCDEF
 
 ### ステップ 2: Secret Manager のセットアップ
 
+**方法1: セットアップスクリプトを使用（推奨）**
+
 ```bash
 ./scripts/setup-secrets.sh
 ```
@@ -95,6 +97,27 @@ $2b$12$abcdefghijklmnopqrstuvwxyz1234567890ABCDEF
 3. **Conference Password**: ステップ1で生成したハッシュを貼り付け
 4. **Store conferences.json**: `n` (No)
 5. **Service Account Email**: 空Enter（後で設定）
+
+**方法2: 手動でシークレットを作成**
+
+```bash
+# プロジェクトを設定
+gcloud config set project YOUR_PROJECT_ID
+
+# Secret Manager APIを有効化
+gcloud services enable secretmanager.googleapis.com
+
+# JWT秘密鍵を自動生成して作成
+openssl rand -base64 32 | gcloud secrets create jwt-secret --data-file=-
+
+# 会議パスワードのハッシュを作成（ステップ1で生成したハッシュを使用）
+echo -n '$2b$12$YOUR_BCRYPT_HASH_HERE' | gcloud secrets create conference-password --data-file=-
+```
+
+**作成したシークレットを確認:**
+```bash
+gcloud secrets list
+```
 
 ---
 
@@ -110,9 +133,11 @@ $2b$12$abcdefghijklmnopqrstuvwxyz1234567890ABCDEF
 3. **Service name**: Enter（デフォルト: voxntry）
 4. **Continue with deployment**: `y`
 5. **Use Secret Manager**: `Y`
-6. **Secrets configured**: `y`
-7. **Allow unauthenticated**: `Y`
-8. **Memory/CPU/Instances**: Enter（デフォルト値を使用）
+6. **Password environment variable name**: `conferences.json`で定義した`passwordEnvVar`の値を入力
+   - 例: `CONFERENCE_MY_CONF_PASSWORD`
+7. **Secrets configured**: `y`（ステップ2でシークレットを作成済みの場合）
+8. **Allow unauthenticated**: `Y`
+9. **Memory/CPU/Instances**: Enter（デフォルト値を使用）
 
 デプロイ完了まで **5〜10分** 待ちます。
 
