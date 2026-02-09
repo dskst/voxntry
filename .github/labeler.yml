@@ -1,0 +1,55 @@
+# Automatic PR labeling based on file changes
+
+# Frontend changes
+frontend:
+  - 'src/app/**/*.tsx'
+  - 'src/app/**/*.ts'
+  - 'src/components/**/*'
+
+# API changes
+api:
+  - 'src/app/api/**/*'
+  - 'src/lib/**/*'
+
+# Configuration changes
+config:
+  - '*.config.*'
+  - '.env.example'
+  - 'tsconfig.json'
+  - 'package.json'
+
+# Documentation
+documentation:
+  - '*.md'
+  - 'docs/**/*'
+
+# CI/CD
+ci/cd:
+  - '.github/**/*'
+
+# Styles
+styles:
+  - '**/*.css'
+  - 'tailwind.config.*'
+
+# Security
+security:
+  - 'src/lib/google.ts'
+  - 'src/app/api/auth/**/*'
+
+# Dependencies
+dependencies:
+  - 'package.json'
+  - 'package-lock.json'
+
+# Tests
+tests:
+  - '**/*.test.ts'
+  - '**/*.test.tsx'
+  - '**/*.spec.ts'
+  - '**/*.spec.tsx'
+
+# Types
+types:
+  - 'src/types/**/*'
+  - '**/*.d.ts'

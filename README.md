@@ -35,19 +35,34 @@ cp .env.example .env.local
 
 `.env.local` を編集：
 
+**重要**: パスワードはbcryptハッシュを使用してください。以下のコマンドでハッシュを生成できます：
+
+```bash
+npm run hash-password "yourSecurePassword"
+```
+
+生成されたハッシュを `.env.local` に設定：
+
 ```bash
 # Conference Authentication (Server-side only)
-CONFERENCE_DEMO_CONF_PASSWORD=password123
+# REQUIRED: Use bcrypt hash (generate with: npm run hash-password "yourPassword")
+CONFERENCE_DEMO_CONF_PASSWORD=$2b$12$...generatedHashHere...
 
 # Google Sheets
+# REQUIRED: Your spreadsheet ID from Google Sheets URL
 NEXT_PUBLIC_DEMO_SPREADSHEET_ID=your-spreadsheet-id
 
 # Development Auto-Login (Optional, for local development only)
 NEXT_PUBLIC_DEV_AUTO_LOGIN=true
 NEXT_PUBLIC_DEV_CONFERENCE_ID=demo-conf
-NEXT_PUBLIC_DEV_PASSWORD=password123
+NEXT_PUBLIC_DEV_PASSWORD=yourPlainTextPasswordForDevOnly
 NEXT_PUBLIC_DEV_STAFF_NAME=DevUser
 ```
+
+**セキュリティ注意事項**:
+- 本番環境では必ずbcryptハッシュを使用してください
+- `.env.local` ファイルは絶対にgitにコミットしないでください（`.gitignore`に含まれています）
+- 開発環境の自動ログイン機能は本番環境では無効になります
 
 ### 4. Google認証の設定
 
@@ -111,9 +126,23 @@ gcloud run services update voxntry \
 
 ## セキュリティ
 
-- パスワードは環境変数で管理（ソースコードにハードコード禁止）
-- Cookie は httpOnly, secure (本番), sameSite フラグで保護
-- 本番環境では HTTPS 必須
+### 認証とパスワード管理
+- **パスワードハッシュ化**: bcrypt (salt rounds: 12) を使用
+- **環境変数管理**: パスワードは環境変数で管理（ソースコードにハードコード禁止）
+- **ハッシュ生成**: `npm run hash-password "yourPassword"` でbcryptハッシュを生成
+
+### Cookie セキュリティ
+- `httpOnly`: XSS攻撃からの保護
+- `secure`: 本番環境でHTTPSのみ送信
+- `sameSite: strict`: CSRF攻撃からの保護
+
+### 本番環境要件
+- HTTPS 必須
+- GCP Secret Manager推奨（環境変数の代わりに）
+- 強力なパスワード使用（最低12文字以上）
+
+### セキュリティポリシー
+詳細は [SECURITY.md](SECURITY.md) を参照してください。
 
 ## 技術スタック
 
@@ -143,6 +172,14 @@ voxntry/
 └── package.json
 ```
 
+## コントリビューション
+
+コントリビューションを歓迎します！プルリクエストを送る前に、[CONTRIBUTING.md](CONTRIBUTING.md) をお読みください。
+
+## 行動規範
+
+このプロジェクトは [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md) を採用しています。参加することで、この行動規範を遵守することに同意したものとみなされます。
+
 ## ライセンス
 
-MIT
+MIT License - 詳細は [LICENSE](LICENSE) ファイルを参照してください。

@@ -1,0 +1,5 @@
+# Trivy Ignore File
+# Add CVEs that are false positives or accepted risks
+
+# Example:
+# CVE-2021-12345
