@@ -1,7 +1,7 @@
 # Multi-stage Dockerfile for Next.js application
 
 # Stage 1: Dependencies
-FROM node:20-slim AS deps
+FROM node:25-slim AS deps
 WORKDIR /app
 
 # Install dependencies based on lockfile
@@ -10,7 +10,7 @@ RUN npm ci --only=production && \
     npm cache clean --force
 
 # Stage 2: Build
-FROM node:20-slim AS builder
+FROM node:25-slim AS builder
 WORKDIR /app
 
 # Copy dependencies from deps stage
@@ -26,7 +26,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
 # Stage 3: Production runtime
-FROM node:20-slim AS runner
+FROM node:25-slim AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
