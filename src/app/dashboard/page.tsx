@@ -248,7 +248,7 @@ export default function Dashboard() {
                                             className="text-sm text-yellow-400 bg-yellow-500/20 px-3 py-1.5 rounded-lg
                                                        border border-yellow-500/30 font-medium"
                                         >
-                                            🎁 {item}
+                                            📂 {item}
                                         </span>
                                     ))}
                                 </div>
