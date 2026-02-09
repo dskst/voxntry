@@ -1,65 +1,67 @@
 # VOXNTRY
 
-カンファレンス受付管理システム - 音声入力とOCR機能を備えた効率的な参加者チェックインツール
+Conference reception management system - Efficient attendee check-in tool with voice input and OCR features
 
-## 機能
+[日本語版 README はこちら](README_ja.md)
 
-- 参加者チェックイン/チェックアウト管理
-- 音声入力による検索
-- 名刺OCR機能
-- Google Sheets連携
-- リアルタイム参加者ステータス更新
+## Features
 
-## セットアップ
+- Attendee check-in/check-out management
+- Voice input search
+- Business card OCR
+- Google Sheets integration
+- Real-time attendee status updates
 
-### 1. リポジトリのクローン
+## Setup
+
+### 1. Clone Repository
 
 ```bash
 git clone <repository-url>
 cd voxntry
 ```
 
-### 2. 依存関係のインストール
+### 2. Install Dependencies
 
 ```bash
 npm install
 ```
 
-### 3. 環境変数の設定
+### 3. Environment Variables Configuration
 
-`.env.example` を `.env.local` にコピーして、必要な値を設定します：
+Copy `.env.example` to `.env.local` and configure required values:
 
 ```bash
 cp .env.example .env.local
 ```
 
-`.env.local` を編集：
+Edit `.env.local`:
 
-#### JWT Secret の生成
+#### Generate JWT Secret
 
-**必須**: JWT認証用の秘密鍵を生成します（最低32文字）：
+**Required**: Generate a secret key for JWT authentication (minimum 32 characters):
 
 ```bash
 # macOS/Linux
 openssl rand -base64 32
 
-# または Node.js
+# Or using Node.js
 node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 ```
 
-#### パスワード設定
+#### Password Configuration
 
-**開発環境**: プレーンテキストパスワードでOK
-**本番環境**: bcryptハッシュが**必須**
+**Development**: Plain-text password is acceptable
+**Production**: bcrypt hash is **required**
 
 ```bash
-# 本番環境用のハッシュ生成
+# Generate hash for production
 npm run hash-password "yourSecurePassword"
 ```
 
-#### .env.local の設定例
+#### .env.local Configuration Example
 
-**開発環境:**
+**Development:**
 ```bash
 # JWT Secret (REQUIRED)
 JWT_SECRET=dev-secret-key-minimum-32-characters
@@ -77,7 +79,7 @@ NEXT_PUBLIC_DEV_PASSWORD=devpassword123
 NEXT_PUBLIC_DEV_STAFF_NAME=DevUser
 ```
 
-**本番環境:**
+**Production:**
 ```bash
 # JWT Secret (Generate with: openssl rand -base64 32)
 JWT_SECRET=your-generated-secret-here-minimum-32-chars
@@ -92,52 +94,67 @@ NEXT_PUBLIC_DEMO_SPREADSHEET_ID=your-spreadsheet-id
 NEXT_PUBLIC_DEV_AUTO_LOGIN=false
 ```
 
-**セキュリティ注意事項**:
-- 🔴 **本番環境では必ずbcryptハッシュを使用**してください
-- 開発環境ではプレーンテキストでも可（利便性優先）
-- `.env.local` ファイルは絶対にgitにコミットしないでください
-- 開発環境の自動ログイン機能は本番環境では無効になります
+**Security Notes**:
+- 🔴 **Always use bcrypt hash in production**
+- Plain-text passwords are acceptable in development (for convenience)
+- Never commit `.env.local` files to git
+- Auto-login feature is automatically disabled in production
 
-### 4. Google認証の設定
+### 4. Google Authentication Setup
 
-**ローカル開発:**
-1. [Google Cloud Console](https://console.cloud.google.com/)でサービスアカウントを作成
-2. Google Sheets APIを有効化
-3. サービスアカウントキー（JSON）をダウンロード
-4. プロジェクトルートに配置（例: `service-account-key.json`）
-5. 環境変数を設定:
-   ```bash
-   export GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account-key.json
-   ```
+#### Local Development
 
-**GCP Cloud Run:**
-- Managed Identityが自動的に使用されます（追加設定不要）
+Configure Google Cloud authentication:
 
-### 5. 開発サーバーの起動
+```bash
+# 1. Login to Google Cloud
+gcloud auth login
+
+# 2. Set up Application Default Credentials (ADC)
+gcloud auth application-default login
+
+# 3. Set project
+gcloud config set project YOUR_PROJECT_ID
+```
+
+**Required permissions:**
+- Google Sheets API enabled
+- Access permission to Google Sheets (view/edit)
+
+**Note:**
+- Service account key files are not required (uses ADC)
+- The Google account you use must have edit permissions on the target spreadsheet
+
+#### GCP Cloud Run (Production)
+
+- Managed Identity is automatically used (no additional configuration required)
+- Grant Google Sheets API access to the Cloud Run service account
+
+### 5. Start Development Server
 
 ```bash
 npm run dev
 ```
 
-ブラウザで [http://localhost:3000](http://localhost:3000) を開きます。
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-## 開発環境の特徴
+## Development Features
 
-### 自動ログイン
+### Auto-Login
 
-開発環境では、`.env.local` で `NEXT_PUBLIC_DEV_AUTO_LOGIN=true` を設定すると、アプリ起動時に自動的にログインします。手動でログイン情報を入力する手間が省けます。
+In development mode, setting `NEXT_PUBLIC_DEV_AUTO_LOGIN=true` in `.env.local` automatically logs you in on app startup, eliminating the need to manually enter login credentials.
 
-無効にする場合は、`.env.local` で以下を設定：
+To disable, set the following in `.env.local`:
 
 ```bash
 NEXT_PUBLIC_DEV_AUTO_LOGIN=false
 ```
 
-## 本番環境へのデプロイ
+## Production Deployment
 
-### GCP Cloud Runへのデプロイ
+### Deploy to GCP Cloud Run
 
-1. **環境変数の設定:**
+1. **Configure Environment Variables:**
 
 ```bash
 gcloud run services update voxntry \
@@ -147,105 +164,59 @@ gcloud run services update voxntry \
   --set-env-vars "GCP_PROJECT_ID=<your-project-id>"
 ```
 
-2. **（推奨）GCP Secret Managerの使用:**
+2. **(Recommended) Use GCP Secret Manager:**
 
 ```bash
-# Secretの作成
+# Create Secret
 echo -n "secure-password" | gcloud secrets create demo-conf-password --data-file=-
 
-# Cloud RunにSecretをマウント
+# Mount Secret to Cloud Run
 gcloud run services update voxntry \
   --update-secrets "CONFERENCE_DEMO_CONF_PASSWORD=demo-conf-password:latest"
 ```
 
-## セキュリティ
+## Tech Stack
 
-### JWT認証
-- **署名付きトークン**: HMAC-SHA256によるトークン署名で改ざん防止
-- **ステートレス認証**: サーバー側のセッションストレージ不要
-- **自動有効期限**: トークンは24時間で自動失効
-- **Middleware保護**: 全API保護エンドポイントで自動検証
-
-### 入力バリデーション
-- **Zodスキーマ**: 型安全なリクエストボディ検証
-- **自動型推論**: TypeScript型がスキーマから自動生成
-- **詳細なエラーメッセージ**: フィールド単位のバリデーションエラー
-- **ファイルサイズ制限**: 画像10MB、音声50MBまで
-- **ファイル形式検証**: MIME typeによる形式チェック
-
-### Rate Limiting（レート制限）
-- **ブルートフォース攻撃防止**: ログインAPIは1分間に5回まで
-- **IPアドレスベース**: クライアントIP単位で制限
-- **LRUキャッシュ**: メモリ効率的な実装
-- **自動リセット**: 1分後に制限解除
-- **429エラー**: 制限超過時に適切なHTTPステータス返却
-
-### 認証とパスワード管理
-- **パスワードハッシュ化**: bcrypt (salt rounds: 12) を使用
-- **環境変数管理**: パスワードとJWT秘密鍵は環境変数で管理
-- **ハッシュ生成**: `npm run hash-password "yourPassword"` でbcryptハッシュを生成
-- **JWT Secret**: 最低32文字のランダム文字列（`openssl rand -base64 32`で生成）
-
-### Cookie セキュリティ
-- `httpOnly`: JavaScript からのアクセスを防止（XSS保護）
-- `secure`: 本番環境でHTTPSのみ送信
-- `sameSite: strict`: CSRF攻撃からの保護
-- JWT トークンをhttpOnly Cookieで安全に保存
-
-### CSRF保護（New!）
-- **Double Submit Cookie Pattern**: CSRFトークンによる二重検証
-- **Origin/Referer検証**: クロスオリジンリクエストのブロック
-- **Defense in Depth**: 多層防御戦略による包括的な保護
-- **自動適用**: 全ての状態変更操作（POST/PUT/DELETE/PATCH）を自動保護
-- **ユーザー影響ゼロ**: 透過的な実装でUXへの影響なし
-- 詳細は [docs/CSRF_PROTECTION.md](docs/CSRF_PROTECTION.md) を参照
-
-### 本番環境要件
-- HTTPS 必須
-- GCP Secret Manager推奨（環境変数の代わりに）
-- 強力なパスワード使用（最低12文字以上）
-
-### セキュリティポリシー
-詳細は [SECURITY.md](SECURITY.md) を参照してください。
-
-## 技術スタック
-
-- **フレームワーク:** Next.js 16 (App Router)
-- **言語:** TypeScript 5
+- **Framework:** Next.js 16 (App Router)
+- **Language:** TypeScript 5
 - **UI:** React 19, Tailwind CSS, Lucide React
-- **バックエンド:** Next.js API Routes
-- **バリデーション:** Zod（型安全なスキーマ検証）
-- **認証:** JWT (jose) + bcrypt
-- **Google連携:** googleapis (Google Sheets API)
+- **Backend:** Next.js API Routes
+- **Validation:** Zod (Type-safe schema validation)
+- **Authentication:** JWT (jose) + bcrypt
+- **Google Integration:** googleapis (Google Sheets API)
 
-## ディレクトリ構成
+## Directory Structure
 
 ```
 voxntry/
 ├── src/
 │   ├── app/                 # Next.js App Router
 │   │   ├── api/            # API Routes
-│   │   ├── dashboard/      # ダッシュボードページ
-│   │   └── page.tsx        # ログインページ
-│   ├── config/             # 設定ファイル
-│   │   └── conferences.ts  # カンファレンス設定
-│   ├── lib/                # ユーティリティ
-│   │   ├── google.ts       # Google認証
-│   │   └── google-sheets.ts # Google Sheets操作
-│   └── types/              # TypeScript型定義
-├── .env.example            # 環境変数テンプレート
-├── .env.local              # ローカル環境変数（gitignore）
+│   │   ├── dashboard/      # Dashboard page
+│   │   └── page.tsx        # Login page
+│   ├── config/             # Configuration files
+│   │   └── conferences.ts  # Conference settings
+│   ├── lib/                # Utilities
+│   │   ├── google.ts       # Google authentication
+│   │   └── google-sheets.ts # Google Sheets operations
+│   └── types/              # TypeScript type definitions
+├── .env.example            # Environment variable template
+├── .env.local              # Local environment variables (gitignore)
 └── package.json
 ```
 
-## コントリビューション
+## Security Policy
 
-コントリビューションを歓迎します！プルリクエストを送る前に、[CONTRIBUTING.md](CONTRIBUTING.md) をお読みください。
+For details, see [SECURITY.md](SECURITY.md).
 
-## 行動規範
+## Contributing
 
-このプロジェクトは [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md) を採用しています。参加することで、この行動規範を遵守することに同意したものとみなされます。
+Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting a pull request.
 
-## ライセンス
+## Code of Conduct
 
-MIT License - 詳細は [LICENSE](LICENSE) ファイルを参照してください。
+This project adopts the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md). By participating, you agree to abide by this code of conduct.
+
+## License
+
+MIT License - See [LICENSE](LICENSE) file for details.
