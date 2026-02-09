@@ -7,6 +7,7 @@ import {
   createTestRequest,
   extractResponse,
 } from '@/__tests__/helpers/api-test-utils';
+import type { ConferenceConfig } from '@/types';
 
 // Mock rate limiting to prevent test interference
 vi.mock('@/lib/rate-limit', () => ({
@@ -31,7 +32,7 @@ vi.mock('@/lib/config-loader', async () => {
         spreadsheetId: 'test-spreadsheet-id-12345',
       },
     ],
-    getConference: (id: string, conferences: any[]) => {
+    getConference: (id: string, conferences: ConferenceConfig[]) => {
       return conferences.find(c => c.id === id);
     },
   };

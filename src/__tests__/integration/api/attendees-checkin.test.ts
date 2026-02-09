@@ -11,6 +11,7 @@ import {
   mockSheetResponses,
   mockSheetErrors,
 } from '@/__tests__/helpers/mocks/google-sheets';
+import type { ConferenceConfig } from '@/types';
 
 // Mock Google Sheets at module level
 const mockSheetsClient = {
@@ -61,7 +62,7 @@ vi.mock('@/lib/config-loader', async () => {
         },
       },
     ],
-    getConference: (id: string, conferences: any[]) => {
+    getConference: (id: string, conferences: ConferenceConfig[]) => {
       return conferences.find(c => c.id === id);
     },
   };

@@ -197,7 +197,7 @@ export function createFullAuthRequest(
  * Assert response status and structure
  */
 export function assertResponseStatus(
-  response: { status: number; body: any },
+  response: { status: number; body: unknown },
   expectedStatus: number,
   expectedBodyKeys?: string[]
 ) {

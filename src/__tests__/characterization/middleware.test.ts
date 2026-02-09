@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { signJWT, verifyJWT } from '@/lib/jwt';
+import { describe, it, expect } from 'vitest';
+import { verifyJWT } from '@/lib/jwt';
 import { generateCsrfToken, verifyCsrfToken, verifyOrigin } from '@/lib/csrf';
 
 /**

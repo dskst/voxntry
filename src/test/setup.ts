@@ -1,10 +1,9 @@
 import '@testing-library/jest-dom';
-import { vi } from 'vitest';
 import { TextEncoder, TextDecoder } from 'util';
 
 // Polyfill TextEncoder/TextDecoder for jose library in jsdom environment
 global.TextEncoder = TextEncoder;
-global.TextDecoder = TextDecoder as any;
+global.TextDecoder = TextDecoder as typeof global.TextDecoder;
 
 // Mock environment variables for testing
 process.env.JWT_SECRET = 'test-jwt-secret-key-min-32-chars-long';

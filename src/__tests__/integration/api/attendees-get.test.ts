@@ -8,6 +8,7 @@ import {
   mockSheetResponses,
   mockSheetErrors,
 } from '@/__tests__/helpers/mocks/google-sheets';
+import type { ConferenceConfig, Attendee } from '@/types';
 
 // Mock Google Sheets at module level
 const mockSheetsClient = {
@@ -64,7 +65,7 @@ vi.mock('@/lib/config-loader', async () => {
         },
       },
     ],
-    getConference: (id: string, conferences: any[]) => {
+    getConference: (id: string, conferences: ConferenceConfig[]) => {
       return conferences.find(c => c.id === id);
     },
   };
@@ -207,7 +208,7 @@ describe('GET /api/attendees', () => {
 
       // Find attendee with items
       const attendeeWithItems = result.body.attendees.find(
-        (a: any) => a.items && a.items.length > 0
+        (a: Attendee) => a.items && a.items.length > 0
       );
 
       if (attendeeWithItems) {
@@ -230,7 +231,7 @@ describe('GET /api/attendees', () => {
 
       // Find attendee with attributes
       const attendeeWithAttributes = result.body.attendees.find(
-        (a: any) => a.attributes && a.attributes.length > 0
+        (a: Attendee) => a.attributes && a.attributes.length > 0
       );
 
       if (attendeeWithAttributes) {
@@ -254,7 +255,7 @@ describe('GET /api/attendees', () => {
       expect(result.status).toBe(200);
 
       // Check that checkedIn is boolean
-      result.body.attendees.forEach((attendee: any) => {
+      result.body.attendees.forEach((attendee: Attendee) => {
         expect(typeof attendee.checkedIn).toBe('boolean');
       });
     });
@@ -274,7 +275,7 @@ describe('GET /api/attendees', () => {
 
       // Check for Japanese characters in sample data
       const japaneseAttendee = result.body.attendees.find(
-        (a: any) => /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]/.test(a.name)
+        (a: Attendee) => /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]/.test(a.name)
       );
 
       if (japaneseAttendee) {

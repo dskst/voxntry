@@ -4,7 +4,6 @@ import { Attendee, SheetColumnMapping } from '@/types';
 import {
   mapRowToAttendee,
   formatBoolean,
-  getColumnLetter,
   calculateSheetRange,
   buildCellRange,
 } from './google-sheets-parser';
@@ -51,12 +50,13 @@ export const getAttendees = async (
     }
 
     return rows.map((row, index) => mapRowToAttendee(row, index, config));
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching sheets:', error);
 
     // Handle authentication errors
-    if (error?.code === 400 || error?.code === 401) {
-      const errorMsg = error?.response?.data?.error_description || error?.message || 'Authentication error';
+    if (error && typeof error === 'object' && 'code' in error && (error.code === 400 || error.code === 401)) {
+      const err = error as { response?: { data?: { error_description?: string } }; message?: string };
+      const errorMsg = err?.response?.data?.error_description || err?.message || 'Authentication error';
 
       if (errorMsg.includes('invalid_rapt') || errorMsg.includes('invalid_grant')) {
         throw new Error(

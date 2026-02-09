@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { z, ZodError } from 'zod';
 import { formatZodError, validateRequestBody, validateFormData } from '@/lib/validation';
 
@@ -582,7 +582,7 @@ describe('Validation - Comprehensive Unit Tests', () => {
         });
 
         // Create deeply nested object
-        let deepObject: any = { value: 'test' };
+        let deepObject: Record<string, unknown> = { value: 'test' };
         for (let i = 0; i < 100; i++) {
           deepObject = { nested: deepObject };
         }

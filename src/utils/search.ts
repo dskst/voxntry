@@ -70,6 +70,7 @@ export interface SearchConfig {
  * });
  * ```
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function filterAttendees<T extends Record<string, any>>(
   items: T[],
   query: string,

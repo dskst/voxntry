@@ -1,4 +1,4 @@
-import { verifyJWT } from '@/lib/jwt';
+import { verifyJWT, type AuthPayload } from '@/lib/jwt';
 import { verifyCsrfToken, verifyOrigin } from '@/lib/csrf';
 
 /**
@@ -20,7 +20,7 @@ export interface RequestCookies {
  * Verification result types
  */
 export type VerificationResult =
-  | { success: true; payload?: any }
+  | { success: true; payload?: AuthPayload }
   | { success: false; error: string; status: number };
 
 /**
@@ -107,7 +107,7 @@ export async function verifyAuthentication(
 /**
  * Create user headers from JWT payload
  */
-export function createUserHeaders(payload: any): Record<string, string> {
+export function createUserHeaders(payload: AuthPayload): Record<string, string> {
   return {
     'x-user-conference-id': payload.conferenceId,
     'x-user-staff-name': payload.staffName,

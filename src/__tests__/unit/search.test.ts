@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { normalizeString, filterAttendees, type SearchConfig } from '@/utils/search';
+import { normalizeString, filterAttendees } from '@/utils/search';
 
 /**
  * Comprehensive Search Utility Tests
@@ -346,8 +346,8 @@ describe('Search Utilities - Comprehensive Unit Tests', () => {
           { id: '1', name: 'Test', count: 123 },
         ];
 
-        const results = filterAttendees(items as any, 'test', {
-          fields: ['name', 'count'] as any,
+        const results = filterAttendees(items as Array<Record<string, unknown>>, 'test', {
+          fields: ['name', 'count'] as Array<keyof Record<string, unknown>>,
         });
         expect(results).toHaveLength(1);
       });
@@ -518,6 +518,7 @@ describe('Search Utilities - Comprehensive Unit Tests', () => {
 
       it('should search within string array fields', () => {
         const results = filterAttendees(attendeesWithArrays, 'Speaker', {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           fields: ['attributes'] as any,
         });
         expect(results).toHaveLength(1);
@@ -526,6 +527,7 @@ describe('Search Utilities - Comprehensive Unit Tests', () => {
 
       it('should match any element in array', () => {
         const results = filterAttendees(attendeesWithArrays, 'VIP', {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           fields: ['attributes'] as any,
         });
         expect(results).toHaveLength(1);
@@ -534,6 +536,7 @@ describe('Search Utilities - Comprehensive Unit Tests', () => {
 
       it('should search arrays with single element', () => {
         const results = filterAttendees(attendeesWithArrays, 'Press', {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           fields: ['attributes'] as any,
         });
         expect(results).toHaveLength(1);
@@ -542,6 +545,7 @@ describe('Search Utilities - Comprehensive Unit Tests', () => {
 
       it('should handle Japanese text in array fields', () => {
         const results = filterAttendees(attendeesWithArrays, '登壇者', {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           fields: ['attributes'] as any,
         });
         expect(results).toHaveLength(1);
@@ -551,6 +555,7 @@ describe('Search Utilities - Comprehensive Unit Tests', () => {
       it('should normalize array field searches', () => {
         // Search with hiragana, should match katakana
         const results = filterAttendees(attendeesWithArrays, 'すぽんさー', {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           fields: ['attributes'] as any,
           normalize: true,
         });
@@ -560,6 +565,7 @@ describe('Search Utilities - Comprehensive Unit Tests', () => {
 
       it('should handle partial matches in array elements', () => {
         const results = filterAttendees(attendeesWithArrays, 'Speak', {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           fields: ['attributes'] as any,
         });
         expect(results).toHaveLength(1);
@@ -568,6 +574,7 @@ describe('Search Utilities - Comprehensive Unit Tests', () => {
 
       it('should handle undefined array field', () => {
         const results = filterAttendees(attendeesWithArrays, 'NonExistent', {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           fields: ['attributes'] as any,
         });
         expect(results).toHaveLength(0);
@@ -575,6 +582,7 @@ describe('Search Utilities - Comprehensive Unit Tests', () => {
 
       it('should handle empty array field', () => {
         const results = filterAttendees(attendeesWithArrays, 'test', {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           fields: ['name', 'attributes'] as any,
         });
         // Should not match empty array, but might match name
@@ -584,6 +592,7 @@ describe('Search Utilities - Comprehensive Unit Tests', () => {
       it('should search both string and array fields together', () => {
         // Search across name (string) and attributes (array)
         const results = filterAttendees(attendeesWithArrays, 'Speaker', {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           fields: ['name', 'attributes'] as any,
         });
         expect(results).toHaveLength(1);
@@ -592,9 +601,11 @@ describe('Search Utilities - Comprehensive Unit Tests', () => {
 
       it('should handle case-insensitive array search', () => {
         const results1 = filterAttendees(attendeesWithArrays, 'speaker', {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           fields: ['attributes'] as any,
         });
         const results2 = filterAttendees(attendeesWithArrays, 'SPEAKER', {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           fields: ['attributes'] as any,
         });
         expect(results1).toHaveLength(1);
@@ -607,11 +618,13 @@ describe('Search Utilities - Comprehensive Unit Tests', () => {
           {
             id: '1',
             name: 'Test',
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             tags: ['valid', 123, null, 'also-valid'] as any,
           },
         ];
 
         const results = filterAttendees(itemsWithMixedArray, 'valid', {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           fields: ['tags'] as any,
         });
         expect(results).toHaveLength(1);
@@ -632,6 +645,7 @@ describe('Search Utilities - Comprehensive Unit Tests', () => {
         ];
 
         const results = filterAttendees(items, 'Staff', {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           fields: ['attributes'] as any,
         });
         expect(results).toHaveLength(2);

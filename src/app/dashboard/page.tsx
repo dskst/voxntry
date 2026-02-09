@@ -7,6 +7,9 @@ import { useRouter } from 'next/navigation';
 import { filterAttendees, SearchableField } from '@/utils/search';
 import { api } from '@/lib/api-client';
 
+// 検索対象フィールドを定数として定義（コンポーネント外）
+const SEARCH_FIELDS: SearchableField[] = ['name', 'nameKana', 'affiliation'];
+
 export default function Dashboard() {
     const router = useRouter();
     const [attendees, setAttendees] = useState<Attendee[]>([]);
@@ -43,6 +46,7 @@ export default function Dashboard() {
 
     useEffect(() => {
         fetchAttendees();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     useEffect(() => {
@@ -55,13 +59,10 @@ export default function Dashboard() {
         };
     }, [query]);
 
-    // 検索対象フィールドを定数として定義
-    const SEARCH_FIELDS: SearchableField[] = ['name', 'nameKana', 'affiliation'];
-
     const filteredAttendees = useMemo(() => {
         try {
             return filterAttendees(attendees, debouncedQuery, {
-                fields: SEARCH_FIELDS,
+                fields: SEARCH_FIELDS, // Defined outside component to avoid re-renders
                 normalize: true, // 全角・半角、ひらがな・カタカナを正規化
             });
         } catch (error) {
@@ -103,7 +104,7 @@ export default function Dashboard() {
             } else {
                 alert('Check-in failed');
             }
-        } catch (error) {
+        } catch {
             alert('Error during check-in');
         } finally {
             setCheckingIn(null);
@@ -132,7 +133,7 @@ export default function Dashboard() {
             } else {
                 alert('Cancel check-in failed');
             }
-        } catch (error) {
+        } catch {
             alert('Error during cancel check-in');
         } finally {
             setCancelingCheckIn(null);

@@ -1,6 +1,6 @@
 // @vitest-environment node
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { signJWT, verifyJWT, type AuthPayload } from '@/lib/jwt';
 
 /**
@@ -236,7 +236,7 @@ describe('JWT - Comprehensive Unit Tests', () => {
         staffName: 'Test',
         role: 'staff'
         // Missing conferenceId
-      } as any)
+      } as Record<string, unknown>)
         .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
         .setIssuedAt()
         .setExpirationTime('24h')
@@ -255,7 +255,7 @@ describe('JWT - Comprehensive Unit Tests', () => {
         conferenceId: 'test',
         role: 'staff'
         // Missing staffName
-      } as any)
+      } as Record<string, unknown>)
         .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
         .setIssuedAt()
         .setExpirationTime('24h')
@@ -274,7 +274,7 @@ describe('JWT - Comprehensive Unit Tests', () => {
         conferenceId: 'test',
         staffName: 'Test'
         // Missing role
-      } as any)
+      } as Record<string, unknown>)
         .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
         .setIssuedAt()
         .setExpirationTime('24h')
@@ -293,7 +293,7 @@ describe('JWT - Comprehensive Unit Tests', () => {
         conferenceId: 'test',
         staffName: 'Test',
         role: 'superadmin' // Invalid role
-      } as any)
+      } as Record<string, unknown>)
         .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
         .setIssuedAt()
         .setExpirationTime('24h')
@@ -312,7 +312,7 @@ describe('JWT - Comprehensive Unit Tests', () => {
         conferenceId: 12345, // Should be string
         staffName: 'Test',
         role: 'staff'
-      } as any)
+      } as Record<string, unknown>)
         .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
         .setIssuedAt()
         .setExpirationTime('24h')
@@ -347,7 +347,7 @@ describe('JWT - Comprehensive Unit Tests', () => {
         conferenceId: 'test',
         staffName: 'Test',
         role: 'staff'
-      } as any)
+      } as Record<string, unknown>)
         .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
         .setIssuedAt(Math.floor(Date.now() / 1000) - 7200) // 2 hours ago
         .setExpirationTime(Math.floor(Date.now() / 1000) - 3600) // 1 hour ago (expired)
@@ -420,7 +420,7 @@ describe('JWT - Comprehensive Unit Tests', () => {
         conferenceId: '',
         staffName: 'Test',
         role: 'staff'
-      } as any)
+      } as Record<string, unknown>)
         .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
         .setIssuedAt()
         .setExpirationTime('24h')
@@ -441,7 +441,7 @@ describe('JWT - Comprehensive Unit Tests', () => {
         conferenceId: 'test',
         staffName: '   ',
         role: 'staff'
-      } as any)
+      } as Record<string, unknown>)
         .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
         .setIssuedAt()
         .setExpirationTime('24h')

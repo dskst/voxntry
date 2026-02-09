@@ -25,7 +25,7 @@ export function getTestJwtSecret(): Uint8Array {
  * Sign a test JWT token using Node's TextEncoder
  * This is a test-only version of signJWT that works around jsdom issues
  */
-export async function signTestJWT(payload: Record<string, any>): Promise<string> {
+export async function signTestJWT(payload: Record<string, unknown>): Promise<string> {
   const secret = getTestJwtSecret();
 
   const token = await new SignJWT(payload)

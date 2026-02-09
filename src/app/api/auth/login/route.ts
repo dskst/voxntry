@@ -92,6 +92,7 @@ export async function POST(request: Request) {
 
     // Set JWT token in httpOnly cookie
     // Remove password from response for security
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password: _, ...conferenceWithoutPassword } = conference;
     const response = NextResponse.json({
       success: true,

@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { rateLimit, getClientIp, type RateLimitOptions } from '@/lib/rate-limit';
+import { describe, it, expect } from 'vitest';
+import { rateLimit, getClientIp } from '@/lib/rate-limit';
 
 /**
  * Comprehensive Rate Limiting Tests

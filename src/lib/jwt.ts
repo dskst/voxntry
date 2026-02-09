@@ -24,7 +24,7 @@ const getJwtSecret = (): Uint8Array => {
 export async function signJWT(payload: AuthPayload): Promise<string> {
   const secret = getJwtSecret();
 
-  const token = await new SignJWT(payload as any)
+  const token = await new SignJWT(payload as Record<string, unknown>)
     .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
     .setIssuedAt()
     .setExpirationTime('24h') // Token expires in 24 hours
