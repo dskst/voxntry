@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
@@ -12,6 +12,44 @@ export default function LoginPage() {
     });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+
+    // Auto-login in development mode
+    useEffect(() => {
+        const isDevelopment = process.env.NODE_ENV === 'development';
+        const autoLogin = process.env.NEXT_PUBLIC_DEV_AUTO_LOGIN === 'true';
+
+        if (isDevelopment && autoLogin) {
+            const devConferenceId = process.env.NEXT_PUBLIC_DEV_CONFERENCE_ID || 'demo-conf';
+            const devPassword = process.env.NEXT_PUBLIC_DEV_PASSWORD || 'password123';
+            const devStaffName = process.env.NEXT_PUBLIC_DEV_STAFF_NAME || 'DevUser';
+
+            setLoading(true);
+            fetch('/api/auth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    conferenceId: devConferenceId,
+                    password: devPassword,
+                    staffName: devStaffName,
+                }),
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        router.push('/dashboard');
+                    } else {
+                        setError('Auto-login failed. Please login manually.');
+                        setLoading(false);
+                    }
+                })
+                .catch(() => {
+                    setError('Auto-login failed. Please login manually.');
+                    setLoading(false);
+                });
+        }
+    }, [router]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();

@@ -25,11 +25,20 @@ export async function POST(request: Request) {
 
   // Set cookies for session
   const response = NextResponse.json({ success: true, conference });
-  
+
   // In a real app, use a secure signed token (JWT)
   // For MVP/Demo, simple cookies are acceptable but should be httpOnly
-  response.cookies.set('voxntry_conf_id', conference.id, { httpOnly: true, path: '/' });
-  response.cookies.set('voxntry_staff_name', staffName, { httpOnly: true, path: '/' });
+  const isProduction = process.env.NODE_ENV === 'production';
+  const cookieOptions = {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: 'lax' as const,
+    path: '/',
+    maxAge: 60 * 60 * 24, // 24 hours
+  };
+
+  response.cookies.set('voxntry_conf_id', conference.id, cookieOptions);
+  response.cookies.set('voxntry_staff_name', staffName, cookieOptions);
   
   return response;
 }

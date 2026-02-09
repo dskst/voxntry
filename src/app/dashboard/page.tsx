@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { Attendee } from '@/types';
 import { Search, UserCheck, RefreshCw, LogOut, X, CheckCircle2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { filterAttendees, SearchableField } from '@/utils/search';
 
 export default function Dashboard() {
     const router = useRouter();
@@ -41,7 +42,7 @@ export default function Dashboard() {
     useEffect(() => {
         const handler = setTimeout(() => {
             setDebouncedQuery(query);
-        }, 2000);
+        }, 400);
 
         return () => {
             clearTimeout(handler);
@@ -56,14 +57,20 @@ export default function Dashboard() {
         return normalized.split(',').map(item => item.trim()).filter(item => item !== '');
     };
 
+    // 検索対象フィールドを定数として定義
+    const SEARCH_FIELDS: SearchableField[] = ['name', 'nameKana', 'company'];
+
     const filteredAttendees = useMemo(() => {
-        if (!debouncedQuery) return attendees;
-        const lowerQuery = debouncedQuery.toLowerCase();
-        return attendees.filter(
-            (a) =>
-                a.name.toLowerCase().includes(lowerQuery) ||
-                a.company.toLowerCase().includes(lowerQuery)
-        );
+        try {
+            return filterAttendees(attendees, debouncedQuery, {
+                fields: SEARCH_FIELDS,
+                normalize: true, // 全角・半角、ひらがな・カタカナを正規化
+            });
+        } catch (error) {
+            console.error('Search filtering error:', error);
+            // エラー時は全件表示（フォールバック）
+            return attendees;
+        }
     }, [attendees, debouncedQuery]);
 
     // Open modal for check-in confirmation
@@ -311,12 +318,20 @@ export default function Dashboard() {
                     <Search className="absolute left-3 top-3 text-gray-500" size={20} />
                     <input
                         type="text"
-                        placeholder="Search name or company..."
+                        placeholder="名前・カナ・会社名で検索..."
                         className="w-full bg-gray-800 border border-gray-700 rounded-lg py-3 pl-10 pr-4 text-white focus:outline-none focus:border-blue-500"
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                     />
                 </div>
+                {debouncedQuery && (
+                    <div className="text-sm text-gray-400">
+                        検索結果: <span className="text-blue-400 font-semibold">{filteredAttendees.length}</span>件
+                        {filteredAttendees.length !== attendees.length && (
+                            <span className="text-gray-500"> / 全{attendees.length}件</span>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* List */}
