@@ -2,25 +2,15 @@ import { NextResponse } from 'next/server';
 import { conferences } from '@/config/conferences';
 import bcrypt from 'bcrypt';
 import { signJWT } from '@/lib/jwt';
+import { LoginRequestSchema } from '@/schemas/api';
+import { validateRequestBody } from '@/lib/validation';
 
 export async function POST(request: Request) {
-  const body = await request.json();
-  const { conferenceId, password, staffName } = body;
+  // Validate request body with Zod
+  const { data, error } = await validateRequestBody(request, LoginRequestSchema);
+  if (error) return error;
 
-  // Input validation
-  if (!conferenceId || typeof conferenceId !== 'string') {
-    return NextResponse.json(
-      { error: 'Invalid conference ID' },
-      { status: 400 }
-    );
-  }
-
-  if (!password || typeof password !== 'string') {
-    return NextResponse.json(
-      { error: 'Invalid password' },
-      { status: 400 }
-    );
-  }
+  const { conferenceId, password, staffName } = data;
 
   // Find conference by ID
   const conference = conferences.find((c) => c.id === conferenceId);
@@ -61,14 +51,8 @@ export async function POST(request: Request) {
     );
   }
 
-  if (!staffName || typeof staffName !== 'string') {
-    return NextResponse.json(
-      { error: 'Staff name is required' },
-      { status: 400 }
-    );
-  }
-
   // Generate JWT token with user information
+  // staffName is already validated by Zod
   try {
     const token = await signJWT({
       conferenceId: conference.id,

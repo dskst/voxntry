@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { checkInAttendee } from '@/lib/google-sheets';
 import { getConference } from '@/config/conferences';
+import { CheckInRequestSchema } from '@/schemas/api';
+import { validateRequestBody } from '@/lib/validation';
 
 export async function POST(request: Request) {
   // Get verified user information from middleware-injected headers
@@ -16,12 +18,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Conference not found' }, { status: 404 });
   }
 
-  const body = await request.json();
-  const { rowId } = body;
+  // Validate request body with Zod
+  const { data, error } = await validateRequestBody(request, CheckInRequestSchema);
+  if (error) return error;
 
-  if (!rowId) {
-    return NextResponse.json({ error: 'Row ID is required' }, { status: 400 });
-  }
+  const { rowId } = data;
 
   try {
     const success = await checkInAttendee(conference.spreadsheetId, rowId, staffName, conference.sheetConfig);

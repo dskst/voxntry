@@ -147,6 +147,13 @@ gcloud run services update voxntry \
 - **自動有効期限**: トークンは24時間で自動失効
 - **Middleware保護**: 全API保護エンドポイントで自動検証
 
+### 入力バリデーション
+- **Zodスキーマ**: 型安全なリクエストボディ検証
+- **自動型推論**: TypeScript型がスキーマから自動生成
+- **詳細なエラーメッセージ**: フィールド単位のバリデーションエラー
+- **ファイルサイズ制限**: 画像10MB、音声50MBまで
+- **ファイル形式検証**: MIME typeによる形式チェック
+
 ### 認証とパスワード管理
 - **パスワードハッシュ化**: bcrypt (salt rounds: 12) を使用
 - **環境変数管理**: パスワードとJWT秘密鍵は環境変数で管理
@@ -173,6 +180,8 @@ gcloud run services update voxntry \
 - **言語:** TypeScript 5
 - **UI:** React 19, Tailwind CSS, Lucide React
 - **バックエンド:** Next.js API Routes
+- **バリデーション:** Zod（型安全なスキーマ検証）
+- **認証:** JWT (jose) + bcrypt
 - **Google連携:** googleapis (Google Sheets API)
 
 ## ディレクトリ構成
