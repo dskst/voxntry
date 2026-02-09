@@ -47,36 +47,55 @@ openssl rand -base64 32
 node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 ```
 
-#### パスワードハッシュの生成
+#### パスワード設定
 
-**必須**: パスワードはbcryptハッシュを使用してください：
+**開発環境**: プレーンテキストパスワードでOK
+**本番環境**: bcryptハッシュが**必須**
 
 ```bash
+# 本番環境用のハッシュ生成
 npm run hash-password "yourSecurePassword"
 ```
 
 #### .env.local の設定例
 
+**開発環境:**
 ```bash
-# JWT Secret (REQUIRED for authentication)
-JWT_SECRET=your-generated-secret-here-minimum-32-chars
+# JWT Secret (REQUIRED)
+JWT_SECRET=dev-secret-key-minimum-32-characters
 
-# Conference Authentication (REQUIRED)
-CONFERENCE_DEMO_CONF_PASSWORD=$2b$12$...generatedHashHere...
+# Conference Authentication - Plain-text for development
+CONFERENCE_DEMO_CONF_PASSWORD=devpassword123
 
 # Google Sheets (REQUIRED)
 NEXT_PUBLIC_DEMO_SPREADSHEET_ID=your-spreadsheet-id
 
-# Development Auto-Login (Optional, for local development only)
+# Development Auto-Login (Optional)
 NEXT_PUBLIC_DEV_AUTO_LOGIN=true
 NEXT_PUBLIC_DEV_CONFERENCE_ID=demo-conf
-NEXT_PUBLIC_DEV_PASSWORD=yourPlainTextPasswordForDevOnly
+NEXT_PUBLIC_DEV_PASSWORD=devpassword123
 NEXT_PUBLIC_DEV_STAFF_NAME=DevUser
 ```
 
+**本番環境:**
+```bash
+# JWT Secret (Generate with: openssl rand -base64 32)
+JWT_SECRET=your-generated-secret-here-minimum-32-chars
+
+# Conference Authentication - bcrypt hash REQUIRED
+CONFERENCE_DEMO_CONF_PASSWORD=$2b$12$...generatedHashHere...
+
+# Google Sheets
+NEXT_PUBLIC_DEMO_SPREADSHEET_ID=your-spreadsheet-id
+
+# Development Auto-Login (Disabled in production)
+NEXT_PUBLIC_DEV_AUTO_LOGIN=false
+```
+
 **セキュリティ注意事項**:
-- 本番環境では必ずbcryptハッシュを使用してください
-- `.env.local` ファイルは絶対にgitにコミットしないでください（`.gitignore`に含まれています）
+- 🔴 **本番環境では必ずbcryptハッシュを使用**してください
+- 開発環境ではプレーンテキストでも可（利便性優先）
+- `.env.local` ファイルは絶対にgitにコミットしないでください
 - 開発環境の自動ログイン機能は本番環境では無効になります
 
 ### 4. Google認証の設定
