@@ -6,10 +6,17 @@ import { verifyJWT } from '@/lib/jwt';
  * Middleware to verify JWT tokens for protected API routes
  */
 export async function middleware(request: NextRequest) {
+  console.log('=== Middleware called for:', request.nextUrl.pathname);
+  console.log('NODE_ENV:', process.env.NODE_ENV);
+
   // Get JWT token from cookie
   const token = request.cookies.get('auth_token')?.value;
+  console.log('Token present:', !!token);
+  console.log('All cookies:', request.cookies.getAll());
 
   if (!token) {
+    console.error('No token found in cookies');
+    console.error('Available cookies:', request.cookies.getAll().map(c => c.name));
     return NextResponse.json(
       { error: 'Unauthorized - No token provided' },
       { status: 401 }
@@ -46,6 +53,7 @@ export async function middleware(request: NextRequest) {
  */
 export const config = {
   matcher: [
+    '/api/attendees',
     '/api/attendees/:path*',
     '/api/ocr',
     '/api/transcribe',

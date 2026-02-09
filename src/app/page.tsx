@@ -29,22 +29,33 @@ export default function LoginPage() {
                 headers: {
                     'Content-Type': 'application/json',
                 },
+                credentials: 'same-origin',
                 body: JSON.stringify({
                     conferenceId: devConferenceId,
                     password: devPassword,
                     staffName: devStaffName,
                 }),
             })
-                .then(res => res.json())
-                .then(data => {
+                .then(async res => {
+                    console.log('Login response status:', res.status);
+                    console.log('Login response headers:', res.headers);
+                    const setCookieHeader = res.headers.get('set-cookie');
+                    console.log('Set-Cookie header:', setCookieHeader);
+                    return res.json();
+                })
+                .then(async data => {
+                    console.log('Login response data:', data);
                     if (data.success) {
+                        console.log('Login successful, redirecting to dashboard...');
+                        // Use Next.js router for proper client-side navigation with cookies
                         router.push('/dashboard');
                     } else {
                         setError('Auto-login failed. Please login manually.');
                         setLoading(false);
                     }
                 })
-                .catch(() => {
+                .catch((err) => {
+                    console.error('Auto-login error:', err);
                     setError('Auto-login failed. Please login manually.');
                     setLoading(false);
                 });
@@ -62,6 +73,7 @@ export default function LoginPage() {
                 headers: {
                     'Content-Type': 'application/json',
                 },
+                credentials: 'same-origin',
                 body: JSON.stringify(formData),
             });
 
@@ -71,6 +83,8 @@ export default function LoginPage() {
                 throw new Error(data.error || 'Login failed');
             }
 
+            console.log('Manual login successful, redirecting to dashboard...');
+            // Use Next.js router for proper client-side navigation with cookies
             router.push('/dashboard');
         } catch (err: any) {
             setError(err.message);

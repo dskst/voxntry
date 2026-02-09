@@ -100,12 +100,14 @@ export async function POST(request: Request) {
     const cookieOptions = {
       httpOnly: true, // Prevents JavaScript access (XSS protection)
       secure: isProduction, // HTTPS only in production
-      sameSite: 'strict' as const, // CSRF protection
+      sameSite: (isProduction ? 'strict' : 'lax') as const, // Use 'lax' in development for compatibility
       path: '/',
       maxAge: 60 * 60 * 24, // 24 hours (matches JWT expiration)
     };
 
     response.cookies.set('auth_token', token, cookieOptions);
+    console.log('Cookie set with options:', cookieOptions);
+    console.log('Token length:', token.length);
 
     return response;
   } catch (error) {

@@ -19,9 +19,16 @@ export default function Dashboard() {
     const fetchAttendees = async () => {
         setLoading(true);
         try {
-            const res = await fetch('/api/attendees');
+            console.log('Fetching attendees...');
+
+            // Fetch attendees - middleware will handle authentication
+            const res = await fetch('/api/attendees', {
+                credentials: 'same-origin',
+            });
+            console.log('Fetch attendees response status:', res.status);
             if (res.status === 401) {
-                router.push('/login');
+                console.error('Unauthorized - no valid token');
+                router.push('/');
                 return;
             }
             const data = await res.json();
@@ -81,6 +88,7 @@ export default function Dashboard() {
                 headers: {
                     'Content-Type': 'application/json',
                 },
+                credentials: 'same-origin',
                 body: JSON.stringify({ rowId: confirmModalData.id }),
             });
 
@@ -115,6 +123,7 @@ export default function Dashboard() {
                 headers: {
                     'Content-Type': 'application/json',
                 },
+                credentials: 'same-origin',
                 body: JSON.stringify({ rowId: id }),
             });
 
