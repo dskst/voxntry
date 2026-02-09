@@ -43,3 +43,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# agent team knowledge (session-specific learning data)
+skills/agent-team/team-knowledge/
