@@ -1,7 +1,7 @@
 export interface Attendee {
   id: string;
   affiliation: string; // Changed from 'company' - more inclusive term for organizations, universities, freelancers, etc.
-  attribute?: string; // Optional: Attendee type (Speaker, Sponsor, Staff, Press, General, VIP)
+  attributes?: string[]; // Optional: Array of attendee types (Speaker, Sponsor, Staff, Press, General, VIP) - max 5 items
   name: string;
   nameKana?: string; // Optional: for search
   items: string[]; // Changed from 'itemsToHandOut' - parsed from comma-separated string

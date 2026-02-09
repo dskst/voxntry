@@ -46,15 +46,22 @@ export const mockSheetsClient = {
 export const mockSheetResponses = {
   /**
    * Sample attendees data
-   * Column mapping: [id(0), attribute(1), affiliation(2), name(3), nameKana(4), items(5), bodySize(6), novelties(7), memo(8), checkedIn(9), checkedInAt(10), staffName(11)]
+   * Column mapping: [id(0), attributes(1), affiliation(2), name(3), nameKana(4), items(5), bodySize(6), novelties(7), memo(8), checkedIn(9), checkedInAt(10), staffName(11)]
    */
   attendees: {
     data: {
       values: [
-        // id, attribute, affiliation, name, nameKana, items, bodySize, novelties, memo, checkedIn, checkedInAt, staffName
-        ['001', '一般', 'テスト会社', '山田太郎', 'やまだ たろう', 'item1,item2', '', '', '', 'TRUE', '2026-01-01T10:00:00Z', 'Staff A'],
-        ['002', '登壇者', '別会社', '鈴木花子', 'すずき はなこ', 'item3', '', '', '', 'FALSE', '', ''],
-        ['003', '一般', 'Test Corp', 'John Doe', '', 'item4,item5', '', '', '', 'TRUE', '2026-01-02T11:00:00Z', 'Staff B'],
+        // id, attributes, affiliation, name, nameKana, items, bodySize, novelties, memo, checkedIn, checkedInAt, staffName
+        // Single attribute
+        ['001', 'Speaker', 'テスト会社', '山田太郎', 'やまだ たろう', 'item1,item2', '', '', '', 'TRUE', '2026-01-01T10:00:00Z', 'Staff A'],
+        // Multiple attributes with full-width comma (Japanese)
+        ['002', '登壇者、スポンサー', '別会社', '鈴木花子', 'すずき はなこ', 'item3', '', '', '', 'FALSE', '', ''],
+        // Multiple attributes with half-width comma (English)
+        ['003', 'Speaker,VIP', 'Test Corp', 'John Doe', '', 'item4,item5', '', '', '', 'TRUE', '2026-01-02T11:00:00Z', 'Staff B'],
+        // Max 5 attributes
+        ['004', 'Speaker,Sponsor,Staff,VIP,Press', 'Company D', 'Jane Smith', 'じぇーん すみす', '', '', '', '', 'FALSE', '', ''],
+        // Empty attributes (undefined)
+        ['005', '', 'Company E', 'Bob Wilson', '', 'item6', '', '', '', 'TRUE', '2026-01-03T09:00:00Z', 'Staff C'],
       ],
     },
   },

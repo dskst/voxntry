@@ -203,19 +203,21 @@ export default function Dashboard() {
 
                     {/* Content */}
                     <div className="p-6 space-y-4">
-                        {/* Attribute Badge */}
-                        {attendee.attribute && (
-                            <div className="flex justify-center">
-                                <span className={`text-xs font-bold px-3 py-1 rounded-full ${
-                                    getAttributeColor(attendee.attribute) === 'purple' ? 'bg-purple-600 text-white' :
-                                    getAttributeColor(attendee.attribute) === 'yellow' ? 'bg-yellow-600 text-white' :
-                                    getAttributeColor(attendee.attribute) === 'blue' ? 'bg-blue-600 text-white' :
-                                    getAttributeColor(attendee.attribute) === 'pink' ? 'bg-pink-600 text-white' :
-                                    getAttributeColor(attendee.attribute) === 'red' ? 'bg-red-600 text-white' :
-                                    'bg-gray-600 text-white'
-                                }`}>
-                                    {attendee.attribute}
-                                </span>
+                        {/* Attribute Badges */}
+                        {attendee.attributes && attendee.attributes.length > 0 && (
+                            <div className="flex flex-wrap justify-center gap-2">
+                                {attendee.attributes.map((attr, idx) => (
+                                    <span key={idx} className={`text-xs font-bold px-3 py-1 rounded-full ${
+                                        getAttributeColor(attr) === 'purple' ? 'bg-purple-600 text-white' :
+                                        getAttributeColor(attr) === 'yellow' ? 'bg-yellow-600 text-white' :
+                                        getAttributeColor(attr) === 'blue' ? 'bg-blue-600 text-white' :
+                                        getAttributeColor(attr) === 'pink' ? 'bg-pink-600 text-white' :
+                                        getAttributeColor(attr) === 'red' ? 'bg-red-600 text-white' :
+                                        'bg-gray-600 text-white'
+                                    }`}>
+                                        {attr}
+                                    </span>
+                                ))}
                             </div>
                         )}
 
@@ -398,7 +400,6 @@ export default function Dashboard() {
                 ) : (
                     filteredAttendees.map((attendee) => {
                         const noveltiesArray = parseCommaSeparated(attendee.novelties);
-                        const attributeColor = getAttributeColor(attendee.attribute);
 
                         return (
                             <div
@@ -409,18 +410,22 @@ export default function Dashboard() {
                                     } flex justify-between items-center transition`}
                             >
                                 <div className="flex-1">
-                                    {/* Attribute Badge */}
-                                    {attendee.attribute && (
-                                        <span className={`inline-block text-xs font-bold px-2 py-0.5 rounded mb-1 ${
-                                            attributeColor === 'purple' ? 'bg-purple-600 text-white' :
-                                            attributeColor === 'yellow' ? 'bg-yellow-600 text-white' :
-                                            attributeColor === 'blue' ? 'bg-blue-600 text-white' :
-                                            attributeColor === 'pink' ? 'bg-pink-600 text-white' :
-                                            attributeColor === 'red' ? 'bg-red-600 text-white' :
-                                            'bg-gray-600 text-white'
-                                        }`}>
-                                            {attendee.attribute}
-                                        </span>
+                                    {/* Attribute Badges */}
+                                    {attendee.attributes && attendee.attributes.length > 0 && (
+                                        <div className="flex flex-wrap gap-1 mb-1">
+                                            {attendee.attributes.map((attr, idx) => (
+                                                <span key={idx} className={`inline-block text-xs font-bold px-2 py-0.5 rounded ${
+                                                    getAttributeColor(attr) === 'purple' ? 'bg-purple-600 text-white' :
+                                                    getAttributeColor(attr) === 'yellow' ? 'bg-yellow-600 text-white' :
+                                                    getAttributeColor(attr) === 'blue' ? 'bg-blue-600 text-white' :
+                                                    getAttributeColor(attr) === 'pink' ? 'bg-pink-600 text-white' :
+                                                    getAttributeColor(attr) === 'red' ? 'bg-red-600 text-white' :
+                                                    'bg-gray-600 text-white'
+                                                }`}>
+                                                    {attr}
+                                                </span>
+                                            ))}
+                                        </div>
                                     )}
 
                                     <p className="text-gray-400 text-xs uppercase font-semibold mb-1">
@@ -445,7 +450,7 @@ export default function Dashboard() {
                                                     key={idx}
                                                     className="text-xs text-yellow-500 bg-yellow-500/10 px-2 py-0.5 rounded"
                                                 >
-                                                    🎁 {item}
+                                                    📂 {item}
                                                 </span>
                                             ))}
                                         </div>

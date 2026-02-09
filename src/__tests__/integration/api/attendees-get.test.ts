@@ -215,6 +215,31 @@ describe('GET /api/attendees', () => {
       }
     });
 
+    it('should return attributes as array', async () => {
+      const request = createTestRequest({
+        url: 'http://localhost:3000/api/attendees',
+        headers: {
+          'x-user-conference-id': 'test-conf-2026',
+        },
+      });
+
+      const response = await GET(request);
+      const result = await extractResponse(response);
+
+      expect(result.status).toBe(200);
+
+      // Find attendee with attributes
+      const attendeeWithAttributes = result.body.attendees.find(
+        (a: any) => a.attributes && a.attributes.length > 0
+      );
+
+      if (attendeeWithAttributes) {
+        expect(Array.isArray(attendeeWithAttributes.attributes)).toBe(true);
+        expect(attendeeWithAttributes.attributes.length).toBeGreaterThan(0);
+        expect(typeof attendeeWithAttributes.attributes[0]).toBe('string');
+      }
+    });
+
     it('should parse boolean checkedIn status', async () => {
       const request = createTestRequest({
         url: 'http://localhost:3000/api/attendees',

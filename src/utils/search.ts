@@ -94,7 +94,29 @@ export function filterAttendees<T extends Record<string, any>>(
       const fieldValue = item[field];
 
       // nullチェック: undefined, null, 空文字をスキップ
-      if (!fieldValue || typeof fieldValue !== 'string') {
+      if (!fieldValue) {
+        return false;
+      }
+
+      // 文字列配列の場合、配列内のいずれかの要素がマッチすればtrue
+      if (Array.isArray(fieldValue)) {
+        return fieldValue.some((element) => {
+          if (typeof element !== 'string') {
+            return false;
+          }
+
+          // 要素を正規化（設定による）
+          const normalizedElement = config.normalize !== false
+            ? normalizeString(element)
+            : element.toLowerCase();
+
+          // 部分一致検索
+          return normalizedElement.includes(searchQuery);
+        });
+      }
+
+      // 文字列の場合は従来通り
+      if (typeof fieldValue !== 'string') {
         return false;
       }
 

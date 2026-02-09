@@ -36,7 +36,7 @@ describe('google-sheets-parser - Characterization Tests', () => {
     });
 
     it('should handle empty string', () => {
-      expect(parseCommaSeparated('')).toEqual([]);
+      expect(parseCommaSeparated('')).toBeUndefined();
     });
 
     it('should trim whitespace', () => {

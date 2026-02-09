@@ -1,14 +1,17 @@
 import { Attendee, SheetColumnMapping } from '@/types';
+import { AttendeeAttributesSchema } from '@/schemas/conference';
 
 /**
  * Parse comma-separated string into array
  * Handles both full-width and half-width commas
+ * Returns undefined if no valid values (consistent with optional field behavior)
  */
-export const parseCommaSeparated = (value: string): string[] => {
-  if (!value || value.trim() === '') return [];
+export const parseCommaSeparated = (value: string): string[] | undefined => {
+  if (!value || value.trim() === '') return undefined;
   // Normalize full-width comma to half-width
   const normalized = value.replace(/、/g, ',');
-  return normalized.split(',').map(item => item.trim()).filter(item => item !== '');
+  const parsed = normalized.split(',').map(item => item.trim()).filter(item => item !== '');
+  return parsed.length > 0 ? parsed : undefined;
 };
 
 /**
@@ -49,13 +52,48 @@ export const mapRowToAttendee = (
   config: SheetColumnMapping
 ): Attendee => {
   const cols = config.columns;
+
+  // Parse attributes from comma-separated string
+  const attributeString = cols.attribute !== undefined ? row[cols.attribute] || '' : '';
+  const attributes = parseCommaSeparated(attributeString);
+
+  // Validate attributes constraints
+  if (attributes !== undefined) {
+    const validation = AttendeeAttributesSchema.safeParse(attributes);
+    if (!validation.success) {
+      console.warn(
+        `Invalid attributes for attendee at row ${index + config.startRow}:`,
+        validation.error.issues.map(i => i.message).join(', ')
+      );
+      // Truncate to meet constraints rather than failing
+      const truncated = attributes.slice(0, 5).map(attr => attr.substring(0, 50));
+      return {
+        id: row[cols.id] || `row-${index + config.startRow}`,
+        affiliation: row[cols.affiliation] || '',
+        attributes: truncated.length > 0 ? truncated : undefined,
+        name: row[cols.name] || '',
+        nameKana: cols.nameKana !== undefined ? row[cols.nameKana] : undefined,
+        items: parseCommaSeparated(row[cols.items] || '') || [],
+        bodySize: cols.bodySize !== undefined ? row[cols.bodySize] : undefined,
+        novelties: cols.novelties !== undefined ? row[cols.novelties] : undefined,
+        memo: cols.memo !== undefined ? row[cols.memo] : undefined,
+        attendsReception: cols.attendsReception !== undefined
+          ? parseBoolean(row[cols.attendsReception])
+          : undefined,
+        checkedIn: parseBoolean(row[cols.checkedIn]),
+        checkedInAt: row[cols.checkedInAt] || undefined,
+        staffName: row[cols.staffName] || undefined,
+      };
+    }
+  }
+
   return {
     id: row[cols.id] || `row-${index + config.startRow}`, // Fallback ID
     affiliation: row[cols.affiliation] || '',
-    attribute: cols.attribute !== undefined ? row[cols.attribute] : undefined,
+    attributes,
     name: row[cols.name] || '',
     nameKana: cols.nameKana !== undefined ? row[cols.nameKana] : undefined,
-    items: parseCommaSeparated(row[cols.items] || ''),
+    items: parseCommaSeparated(row[cols.items] || '') || [],
     bodySize: cols.bodySize !== undefined ? row[cols.bodySize] : undefined,
     novelties: cols.novelties !== undefined ? row[cols.novelties] : undefined,
     memo: cols.memo !== undefined ? row[cols.memo] : undefined,

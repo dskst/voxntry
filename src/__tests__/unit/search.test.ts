@@ -468,5 +468,174 @@ describe('Search Utilities - Comprehensive Unit Tests', () => {
         expect(affiliationMatch).toHaveLength(1);
       });
     });
+
+    describe('Array Field Support', () => {
+      // Sample data with array fields (e.g., attributes)
+      const attendeesWithArrays = [
+        {
+          id: '1',
+          name: '田中太郎',
+          nameKana: 'タナカタロウ',
+          affiliation: '株式会社ABC',
+          attributes: ['Speaker', 'Sponsor'],
+        },
+        {
+          id: '2',
+          name: '山田花子',
+          nameKana: 'ヤマダハナコ',
+          affiliation: '株式会社DEF',
+          attributes: ['Staff', 'VIP'],
+        },
+        {
+          id: '3',
+          name: '佐藤次郎',
+          nameKana: 'サトウジロウ',
+          affiliation: '株式会社GHI',
+          attributes: ['Press'],
+        },
+        {
+          id: '4',
+          name: '鈴木一郎',
+          nameKana: 'スズキイチロウ',
+          affiliation: '株式会社JKL',
+          attributes: ['登壇者', 'スポンサー'],
+        },
+        {
+          id: '5',
+          name: 'John Smith',
+          nameKana: 'ジョンスミス',
+          affiliation: 'XYZ Corporation',
+          attributes: undefined, // No attributes
+        },
+        {
+          id: '6',
+          name: 'Jane Doe',
+          nameKana: 'ジェーンドー',
+          affiliation: 'Test Corp',
+          attributes: [], // Empty array
+        },
+      ];
+
+      it('should search within string array fields', () => {
+        const results = filterAttendees(attendeesWithArrays, 'Speaker', {
+          fields: ['attributes'] as any,
+        });
+        expect(results).toHaveLength(1);
+        expect(results[0].name).toBe('田中太郎');
+      });
+
+      it('should match any element in array', () => {
+        const results = filterAttendees(attendeesWithArrays, 'VIP', {
+          fields: ['attributes'] as any,
+        });
+        expect(results).toHaveLength(1);
+        expect(results[0].name).toBe('山田花子');
+      });
+
+      it('should search arrays with single element', () => {
+        const results = filterAttendees(attendeesWithArrays, 'Press', {
+          fields: ['attributes'] as any,
+        });
+        expect(results).toHaveLength(1);
+        expect(results[0].name).toBe('佐藤次郎');
+      });
+
+      it('should handle Japanese text in array fields', () => {
+        const results = filterAttendees(attendeesWithArrays, '登壇者', {
+          fields: ['attributes'] as any,
+        });
+        expect(results).toHaveLength(1);
+        expect(results[0].name).toBe('鈴木一郎');
+      });
+
+      it('should normalize array field searches', () => {
+        // Search with hiragana, should match katakana
+        const results = filterAttendees(attendeesWithArrays, 'すぽんさー', {
+          fields: ['attributes'] as any,
+          normalize: true,
+        });
+        expect(results).toHaveLength(1);
+        expect(results[0].name).toBe('鈴木一郎');
+      });
+
+      it('should handle partial matches in array elements', () => {
+        const results = filterAttendees(attendeesWithArrays, 'Speak', {
+          fields: ['attributes'] as any,
+        });
+        expect(results).toHaveLength(1);
+        expect(results[0].name).toBe('田中太郎');
+      });
+
+      it('should handle undefined array field', () => {
+        const results = filterAttendees(attendeesWithArrays, 'NonExistent', {
+          fields: ['attributes'] as any,
+        });
+        expect(results).toHaveLength(0);
+      });
+
+      it('should handle empty array field', () => {
+        const results = filterAttendees(attendeesWithArrays, 'test', {
+          fields: ['name', 'attributes'] as any,
+        });
+        // Should not match empty array, but might match name
+        expect(results.every(r => r.id !== '6' || r.name.toLowerCase().includes('test')));
+      });
+
+      it('should search both string and array fields together', () => {
+        // Search across name (string) and attributes (array)
+        const results = filterAttendees(attendeesWithArrays, 'Speaker', {
+          fields: ['name', 'attributes'] as any,
+        });
+        expect(results).toHaveLength(1);
+        expect(results[0].attributes).toContain('Speaker');
+      });
+
+      it('should handle case-insensitive array search', () => {
+        const results1 = filterAttendees(attendeesWithArrays, 'speaker', {
+          fields: ['attributes'] as any,
+        });
+        const results2 = filterAttendees(attendeesWithArrays, 'SPEAKER', {
+          fields: ['attributes'] as any,
+        });
+        expect(results1).toHaveLength(1);
+        expect(results2).toHaveLength(1);
+        expect(results1[0].id).toBe(results2[0].id);
+      });
+
+      it('should skip non-string elements in arrays', () => {
+        const itemsWithMixedArray = [
+          {
+            id: '1',
+            name: 'Test',
+            tags: ['valid', 123, null, 'also-valid'] as any,
+          },
+        ];
+
+        const results = filterAttendees(itemsWithMixedArray, 'valid', {
+          fields: ['tags'] as any,
+        });
+        expect(results).toHaveLength(1);
+      });
+
+      it('should handle multiple matches across array elements', () => {
+        const items = [
+          {
+            id: '1',
+            name: 'Person 1',
+            attributes: ['Staff', 'Sponsor'],
+          },
+          {
+            id: '2',
+            name: 'Person 2',
+            attributes: ['Staff', 'VIP'],
+          },
+        ];
+
+        const results = filterAttendees(items, 'Staff', {
+          fields: ['attributes'] as any,
+        });
+        expect(results).toHaveLength(2);
+      });
+    });
   });
 });

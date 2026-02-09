@@ -1,6 +1,20 @@
 import { z } from 'zod';
 
 /**
+ * Schema for Attendee attributes validation
+ * - Max 5 attributes per attendee
+ * - Max 50 characters per attribute
+ */
+export const AttendeeAttributesSchema = z
+  .array(
+    z.string()
+      .max(50, 'Each attribute must be 50 characters or less')
+      .min(1, 'Attributes cannot be empty strings')
+  )
+  .max(5, 'Maximum 5 attributes per attendee')
+  .optional();
+
+/**
  * Schema for Sheet Column Mapping configuration
  */
 export const SheetColumnMappingSchema = z.object({

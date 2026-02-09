@@ -29,11 +29,11 @@ describe('google-sheets-parser', () => {
     });
 
     it('should handle empty string', () => {
-      expect(parseCommaSeparated('')).toEqual([]);
+      expect(parseCommaSeparated('')).toBeUndefined();
     });
 
     it('should handle whitespace only', () => {
-      expect(parseCommaSeparated('   ')).toEqual([]);
+      expect(parseCommaSeparated('   ')).toBeUndefined();
     });
 
     it('should filter out empty items', () => {
@@ -164,7 +164,7 @@ describe('google-sheets-parser', () => {
 
       expect(attendee).toEqual({
         id: '001',
-        attribute: 'VIP',
+        attributes: ['VIP'],
         affiliation: 'ACME Corp',
         name: 'John Doe',
         nameKana: 'ジョン・ドー',
@@ -230,10 +230,187 @@ describe('google-sheets-parser', () => {
 
       const attendee = mapRowToAttendee(row, 0, configWithoutOptional);
 
-      expect(attendee.attribute).toBeUndefined();
+      expect(attendee.attributes).toBeUndefined();
       expect(attendee.nameKana).toBeUndefined();
       expect(attendee.bodySize).toBeUndefined();
       expect(attendee.attendsReception).toBeUndefined();
+    });
+
+    it('should parse comma-separated attributes', () => {
+      const row = [
+        '004',
+        'Speaker,Sponsor',
+        'Tech Corp',
+        'Jane Smith',
+        '',
+        '',
+        '',
+        '',
+        '',
+        'FALSE',
+        '',
+        '',
+        '',
+      ];
+
+      const attendee = mapRowToAttendee(row, 0, mockConfig);
+
+      expect(attendee.attributes).toEqual(['Speaker', 'Sponsor']);
+    });
+
+    it('should parse full-width comma-separated attributes', () => {
+      const row = [
+        '005',
+        '登壇者、スポンサー',
+        'Japanese Corp',
+        '田中太郎',
+        '',
+        '',
+        '',
+        '',
+        '',
+        'FALSE',
+        '',
+        '',
+        '',
+      ];
+
+      const attendee = mapRowToAttendee(row, 0, mockConfig);
+
+      expect(attendee.attributes).toEqual(['登壇者', 'スポンサー']);
+    });
+
+    it('should handle empty attribute string as undefined', () => {
+      const row = [
+        '006',
+        '',
+        'Corp',
+        'No Attribute',
+        '',
+        '',
+        '',
+        '',
+        '',
+        'FALSE',
+        '',
+        '',
+        '',
+      ];
+
+      const attendee = mapRowToAttendee(row, 0, mockConfig);
+
+      expect(attendee.attributes).toBeUndefined();
+    });
+
+    it('should trim whitespace from attributes', () => {
+      const row = [
+        '007',
+        ' Speaker , Sponsor , VIP ',
+        'Corp',
+        'User',
+        '',
+        '',
+        '',
+        '',
+        '',
+        'FALSE',
+        '',
+        '',
+        '',
+      ];
+
+      const attendee = mapRowToAttendee(row, 0, mockConfig);
+
+      expect(attendee.attributes).toEqual(['Speaker', 'Sponsor', 'VIP']);
+    });
+
+    it('should truncate attributes exceeding max limit of 5', () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const row = [
+        '008',
+        'Speaker,Sponsor,VIP,Staff,Press,General', // 6 attributes - exceeds limit
+        'Corp',
+        'User',
+        '',
+        '',
+        '',
+        '',
+        '',
+        'FALSE',
+        '',
+        '',
+        '',
+      ];
+
+      const attendee = mapRowToAttendee(row, 0, mockConfig);
+
+      expect(attendee.attributes).toEqual(['Speaker', 'Sponsor', 'VIP', 'Staff', 'Press']);
+      expect(attendee.attributes).toHaveLength(5);
+      expect(consoleWarnSpy).toHaveBeenCalled();
+
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('should truncate attributes exceeding max character limit of 50', () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const longAttribute = 'A'.repeat(60); // 60 characters - exceeds limit
+      const row = [
+        '009',
+        longAttribute,
+        'Corp',
+        'User',
+        '',
+        '',
+        '',
+        '',
+        '',
+        'FALSE',
+        '',
+        '',
+        '',
+      ];
+
+      const attendee = mapRowToAttendee(row, 0, mockConfig);
+
+      expect(attendee.attributes).toBeDefined();
+      expect(attendee.attributes![0]).toHaveLength(50);
+      expect(consoleWarnSpy).toHaveBeenCalled();
+
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('should handle both max count and max length violations', () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const longAttribute1 = 'A'.repeat(60);
+      const longAttribute2 = 'B'.repeat(70);
+      const row = [
+        '010',
+        `${longAttribute1},${longAttribute2},C,D,E,F`, // 6 attributes, first 2 too long
+        'Corp',
+        'User',
+        '',
+        '',
+        '',
+        '',
+        '',
+        'FALSE',
+        '',
+        '',
+        '',
+      ];
+
+      const attendee = mapRowToAttendee(row, 0, mockConfig);
+
+      expect(attendee.attributes).toBeDefined();
+      expect(attendee.attributes).toHaveLength(5); // Max 5 attributes
+      expect(attendee.attributes![0]).toHaveLength(50); // Truncated to 50
+      expect(attendee.attributes![1]).toHaveLength(50); // Truncated to 50
+      expect(consoleWarnSpy).toHaveBeenCalled();
+
+      consoleWarnSpy.mockRestore();
     });
   });
 
