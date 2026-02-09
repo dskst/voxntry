@@ -4,9 +4,41 @@ import { ConferenceConfig } from '@/types';
 import { validateConferences, type ConferenceConfigInput } from '@/schemas/conference';
 
 /**
+ * File system interface for dependency injection
+ */
+export interface FileSystem {
+  readFileSync: (path: string, encoding: BufferEncoding) => string;
+  existsSync: (path: string) => boolean;
+}
+
+/**
+ * Environment interface for dependency injection
+ */
+export interface Environment {
+  NODE_ENV?: string;
+  [key: string]: string | undefined;
+}
+
+/**
+ * Default file system implementation
+ */
+export const defaultFileSystem: FileSystem = {
+  readFileSync: (path: string, encoding: BufferEncoding) => readFileSync(path, encoding),
+  existsSync: (path: string) => existsSync(path),
+};
+
+/**
+ * Default environment implementation
+ */
+export const defaultEnvironment: Environment = process.env;
+
+/**
  * Validate required environment variable
  */
-const validateEnvVar = (name: string, value: string | undefined): string => {
+export const validateEnvVar = (
+  name: string,
+  value: string | undefined
+): string => {
   if (!value) {
     throw new Error(
       `Missing required environment variable: ${name}\n\n` +
@@ -19,10 +51,13 @@ const validateEnvVar = (name: string, value: string | undefined): string => {
 /**
  * Load conference configuration from JSON file
  */
-function loadConferencesFromFile(): ConferenceConfigInput[] {
-  const configPath = join(process.cwd(), 'config', 'conferences.json');
+function loadConferencesFromFile(
+  fs: FileSystem = defaultFileSystem,
+  cwd: string = process.cwd()
+): ConferenceConfigInput[] {
+  const configPath = join(cwd, 'config', 'conferences.json');
 
-  if (!existsSync(configPath)) {
+  if (!fs.existsSync(configPath)) {
     throw new Error(
       `❌ Conference configuration file not found: ${configPath}\n\n` +
       `📝 Initial setup required:\n` +
@@ -34,7 +69,7 @@ function loadConferencesFromFile(): ConferenceConfigInput[] {
   }
 
   try {
-    const fileContent = readFileSync(configPath, 'utf-8');
+    const fileContent = fs.readFileSync(configPath, 'utf-8');
     const parsed = JSON.parse(fileContent);
 
     if (!parsed.conferences || !Array.isArray(parsed.conferences)) {
@@ -60,12 +95,15 @@ function loadConferencesFromFile(): ConferenceConfigInput[] {
 /**
  * Enrich conference configuration with environment variables
  */
-function enrichWithEnvVars(configs: ConferenceConfigInput[]): ConferenceConfig[] {
+function enrichWithEnvVars(
+  configs: ConferenceConfigInput[],
+  env: Environment = defaultEnvironment
+): ConferenceConfig[] {
   return configs.map(config => {
     // Get password from environment variable
     const password = validateEnvVar(
       config.passwordEnvVar,
-      process.env[config.passwordEnvVar]
+      env[config.passwordEnvVar]
     );
 
     return {
@@ -82,10 +120,14 @@ function enrichWithEnvVars(configs: ConferenceConfigInput[]): ConferenceConfig[]
  * Load and validate conference configurations
  * Combines JSON configuration with environment variables
  */
-export function loadConferences(): ConferenceConfig[] {
+export function loadConferences(
+  fs: FileSystem = defaultFileSystem,
+  env: Environment = defaultEnvironment,
+  cwd: string = process.cwd()
+): ConferenceConfig[] {
   try {
-    const configs = loadConferencesFromFile();
-    return enrichWithEnvVars(configs);
+    const configs = loadConferencesFromFile(fs, cwd);
+    return enrichWithEnvVars(configs, env);
   } catch (error) {
     // Log error to console for debugging
     console.error('Failed to load conference configuration:', error);
@@ -106,14 +148,18 @@ let cachedConferences: ConferenceConfig[] | null = null;
 /**
  * Get conferences with caching in production
  */
-export function getConferences(): ConferenceConfig[] {
-  if (process.env.NODE_ENV === 'production' && cachedConferences) {
+export function getConferences(
+  fs: FileSystem = defaultFileSystem,
+  env: Environment = defaultEnvironment,
+  cwd: string = process.cwd()
+): ConferenceConfig[] {
+  if (env.NODE_ENV === 'production' && cachedConferences) {
     return cachedConferences;
   }
 
-  const conferences = loadConferences();
+  const conferences = loadConferences(fs, env, cwd);
 
-  if (process.env.NODE_ENV === 'production') {
+  if (env.NODE_ENV === 'production') {
     cachedConferences = conferences;
   }
 
