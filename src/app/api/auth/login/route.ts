@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { conferences } from '@/config/conferences';
 import bcrypt from 'bcrypt';
+import { signJWT } from '@/lib/jwt';
 
 export async function POST(request: Request) {
   const body = await request.json();
@@ -60,28 +61,41 @@ export async function POST(request: Request) {
     );
   }
 
-  if (!staffName) {
+  if (!staffName || typeof staffName !== 'string') {
     return NextResponse.json(
       { error: 'Staff name is required' },
       { status: 400 }
     );
   }
 
-  // Set cookies for session
-  const response = NextResponse.json({ success: true, conference });
+  // Generate JWT token with user information
+  try {
+    const token = await signJWT({
+      conferenceId: conference.id,
+      staffName,
+      role: 'staff', // Default role, can be extended later
+    });
 
-  // Cookie security settings
-  const isProduction = process.env.NODE_ENV === 'production';
-  const cookieOptions = {
-    httpOnly: true,
-    secure: isProduction,
-    sameSite: 'strict' as const, // Changed from 'lax' to 'strict' for better CSRF protection
-    path: '/',
-    maxAge: 60 * 60 * 24, // 24 hours
-  };
+    // Set JWT token in httpOnly cookie
+    const response = NextResponse.json({ success: true, conference });
 
-  response.cookies.set('voxntry_conf_id', conference.id, cookieOptions);
-  response.cookies.set('voxntry_staff_name', staffName, cookieOptions);
-  
-  return response;
+    const isProduction = process.env.NODE_ENV === 'production';
+    const cookieOptions = {
+      httpOnly: true, // Prevents JavaScript access (XSS protection)
+      secure: isProduction, // HTTPS only in production
+      sameSite: 'strict' as const, // CSRF protection
+      path: '/',
+      maxAge: 60 * 60 * 24, // 24 hours (matches JWT expiration)
+    };
+
+    response.cookies.set('auth_token', token, cookieOptions);
+
+    return response;
+  } catch (error) {
+    console.error('JWT generation error:', error);
+    return NextResponse.json(
+      { error: 'Authentication failed' },
+      { status: 500 }
+    );
+  }
 }

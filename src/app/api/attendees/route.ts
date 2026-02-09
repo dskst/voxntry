@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import { getAttendees } from '@/lib/google-sheets';
 import { getConference } from '@/config/conferences';
 
 export async function GET(request: Request) {
-  const cookieStore = await cookies();
-  const conferenceId = cookieStore.get('voxntry_conf_id')?.value;
+  // Get verified user information from middleware-injected headers
+  const conferenceId = request.headers.get('x-user-conference-id');
 
   if (!conferenceId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

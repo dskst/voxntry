@@ -35,21 +35,36 @@ cp .env.example .env.local
 
 `.env.local` を編集：
 
-**重要**: パスワードはbcryptハッシュを使用してください。以下のコマンドでハッシュを生成できます：
+#### JWT Secret の生成
+
+**必須**: JWT認証用の秘密鍵を生成します（最低32文字）：
+
+```bash
+# macOS/Linux
+openssl rand -base64 32
+
+# または Node.js
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+```
+
+#### パスワードハッシュの生成
+
+**必須**: パスワードはbcryptハッシュを使用してください：
 
 ```bash
 npm run hash-password "yourSecurePassword"
 ```
 
-生成されたハッシュを `.env.local` に設定：
+#### .env.local の設定例
 
 ```bash
-# Conference Authentication (Server-side only)
-# REQUIRED: Use bcrypt hash (generate with: npm run hash-password "yourPassword")
+# JWT Secret (REQUIRED for authentication)
+JWT_SECRET=your-generated-secret-here-minimum-32-chars
+
+# Conference Authentication (REQUIRED)
 CONFERENCE_DEMO_CONF_PASSWORD=$2b$12$...generatedHashHere...
 
-# Google Sheets
-# REQUIRED: Your spreadsheet ID from Google Sheets URL
+# Google Sheets (REQUIRED)
 NEXT_PUBLIC_DEMO_SPREADSHEET_ID=your-spreadsheet-id
 
 # Development Auto-Login (Optional, for local development only)
@@ -126,15 +141,23 @@ gcloud run services update voxntry \
 
 ## セキュリティ
 
+### JWT認証
+- **署名付きトークン**: HMAC-SHA256によるトークン署名で改ざん防止
+- **ステートレス認証**: サーバー側のセッションストレージ不要
+- **自動有効期限**: トークンは24時間で自動失効
+- **Middleware保護**: 全API保護エンドポイントで自動検証
+
 ### 認証とパスワード管理
 - **パスワードハッシュ化**: bcrypt (salt rounds: 12) を使用
-- **環境変数管理**: パスワードは環境変数で管理（ソースコードにハードコード禁止）
+- **環境変数管理**: パスワードとJWT秘密鍵は環境変数で管理
 - **ハッシュ生成**: `npm run hash-password "yourPassword"` でbcryptハッシュを生成
+- **JWT Secret**: 最低32文字のランダム文字列（`openssl rand -base64 32`で生成）
 
 ### Cookie セキュリティ
-- `httpOnly`: XSS攻撃からの保護
+- `httpOnly`: JavaScript からのアクセスを防止（XSS保護）
 - `secure`: 本番環境でHTTPSのみ送信
 - `sameSite: strict`: CSRF攻撃からの保護
+- JWT トークンをhttpOnly Cookieで安全に保存
 
 ### 本番環境要件
 - HTTPS 必須

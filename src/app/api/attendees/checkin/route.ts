@@ -1,12 +1,11 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import { checkInAttendee } from '@/lib/google-sheets';
 import { getConference } from '@/config/conferences';
 
 export async function POST(request: Request) {
-  const cookieStore = await cookies();
-  const conferenceId = cookieStore.get('voxntry_conf_id')?.value;
-  const staffName = cookieStore.get('voxntry_staff_name')?.value;
+  // Get verified user information from middleware-injected headers
+  const conferenceId = request.headers.get('x-user-conference-id');
+  const staffName = request.headers.get('x-user-staff-name');
 
   if (!conferenceId || !staffName) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
