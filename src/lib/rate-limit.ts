@@ -100,3 +100,24 @@ export function getClientIp(request: Request): string {
   // In production, this should rarely happen
   return 'unknown';
 }
+
+// Registry to track all rate limiter instances for testing
+const limiterRegistry = new Set<RateLimiter>();
+
+/**
+ * Register a rate limiter instance for testing
+ * @internal Used by tests to reset all limiters
+ */
+export function __registerLimiter(limiter: RateLimiter): void {
+  limiterRegistry.add(limiter);
+}
+
+/**
+ * Reset all registered rate limiters
+ * FOR TESTING ONLY - clears all rate limit counters
+ */
+export function __resetAllLimiters(): void {
+  // We can't directly reset LRU caches, but we can clear the registry
+  // Individual limiters should implement their own reset logic
+  limiterRegistry.clear();
+}

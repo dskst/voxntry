@@ -1,0 +1,10 @@
+{
+  "conferences": [
+    {
+      "id": "test-conf-2026",
+      "name": "Test Conference 2026",
+      "passwordEnvVar": "TEST_CONF_PASSWORD",
+      "spreadsheetId": "test-spreadsheet-id-12345"
+    }
+  ]
+}
