@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Attendee } from '@/types';
 import { Search, UserCheck, RefreshCw, LogOut, X, CheckCircle2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -49,16 +49,8 @@ export default function Dashboard() {
         };
     }, [query]);
 
-    // Helper function to parse comma-separated items into an array
-    const parseItemsToHandOut = (items: string): string[] => {
-        if (!items || items.trim() === '') return [];
-        // Normalize full-width comma to half-width
-        const normalized = items.replace(/、/g, ',');
-        return normalized.split(',').map(item => item.trim()).filter(item => item !== '');
-    };
-
     // 検索対象フィールドを定数として定義
-    const SEARCH_FIELDS: SearchableField[] = ['name', 'nameKana', 'company'];
+    const SEARCH_FIELDS: SearchableField[] = ['name', 'nameKana', 'affiliation'];
 
     const filteredAttendees = useMemo(() => {
         try {
@@ -97,7 +89,7 @@ export default function Dashboard() {
                 setAttendees((prev) =>
                     prev.map((a) =>
                         a.id === confirmModalData.id
-                            ? { ...a, status: 'Checked In', timeStamp: new Date().toISOString() }
+                            ? { ...a, checkedIn: true, checkedInAt: new Date().toISOString() }
                             : a
                     )
                 );
@@ -130,7 +122,7 @@ export default function Dashboard() {
                 // Optimistic update
                 setAttendees((prev) =>
                     prev.map((a) =>
-                        a.id === id ? { ...a, status: 'Not Checked In', timeStamp: undefined } : a
+                        a.id === id ? { ...a, checkedIn: false, checkedInAt: undefined } : a
                     )
                 );
             } else {
@@ -145,9 +137,28 @@ export default function Dashboard() {
 
     const stats = useMemo(() => {
         const total = attendees.length;
-        const checkedIn = attendees.filter((a) => a.status === 'Checked In').length;
+        const checkedIn = attendees.filter((a) => a.checkedIn).length;
         return { total, checkedIn };
     }, [attendees]);
+
+    // Helper to parse comma-separated string into array (for novelties)
+    const parseCommaSeparated = (value: string | undefined): string[] => {
+        if (!value || value.trim() === '') return [];
+        const normalized = value.replace(/、/g, ',');
+        return normalized.split(',').map(item => item.trim()).filter(item => item !== '');
+    };
+
+    // Get attribute badge color
+    const getAttributeColor = (attribute: string | undefined) => {
+        if (!attribute) return null;
+        const attr = attribute.toLowerCase();
+        if (attr.includes('speaker') || attr.includes('登壇')) return 'purple';
+        if (attr.includes('sponsor') || attr.includes('スポンサー')) return 'yellow';
+        if (attr.includes('staff') || attr.includes('スタッフ')) return 'blue';
+        if (attr.includes('press') || attr.includes('報道')) return 'pink';
+        if (attr.includes('vip')) return 'red';
+        return 'gray';
+    };
 
     // Confirmation Modal Component
     const ConfirmationModal = ({
@@ -161,7 +172,7 @@ export default function Dashboard() {
         onCancel: () => void;
         isLoading: boolean;
     }) => {
-        const itemsArray = parseItemsToHandOut(attendee.itemsToHandOut);
+        const noveltiesArray = parseCommaSeparated(attendee.novelties);
 
         return (
             <div
@@ -188,10 +199,26 @@ export default function Dashboard() {
 
                     {/* Content */}
                     <div className="p-6 space-y-4">
-                        {/* Company */}
+                        {/* Attribute Badge */}
+                        {attendee.attribute && (
+                            <div className="flex justify-center">
+                                <span className={`text-xs font-bold px-3 py-1 rounded-full ${
+                                    getAttributeColor(attendee.attribute) === 'purple' ? 'bg-purple-600 text-white' :
+                                    getAttributeColor(attendee.attribute) === 'yellow' ? 'bg-yellow-600 text-white' :
+                                    getAttributeColor(attendee.attribute) === 'blue' ? 'bg-blue-600 text-white' :
+                                    getAttributeColor(attendee.attribute) === 'pink' ? 'bg-pink-600 text-white' :
+                                    getAttributeColor(attendee.attribute) === 'red' ? 'bg-red-600 text-white' :
+                                    'bg-gray-600 text-white'
+                                }`}>
+                                    {attendee.attribute}
+                                </span>
+                            </div>
+                        )}
+
+                        {/* Affiliation */}
                         <div>
-                            <p className="text-xs text-gray-500 uppercase font-semibold mb-1">Company</p>
-                            <p className="text-lg text-gray-300">{attendee.company}</p>
+                            <p className="text-xs text-gray-500 uppercase font-semibold mb-1">Affiliation</p>
+                            <p className="text-lg text-gray-300">{attendee.affiliation}</p>
                         </div>
 
                         {/* Name */}
@@ -204,11 +231,11 @@ export default function Dashboard() {
                         </div>
 
                         {/* Items to Hand Out */}
-                        {itemsArray.length > 0 && (
+                        {attendee.items.length > 0 && (
                             <div>
                                 <p className="text-xs text-gray-500 uppercase font-semibold mb-2">Items to Hand Out</p>
                                 <div className="flex flex-wrap gap-2">
-                                    {itemsArray.map((item, idx) => (
+                                    {attendee.items.map((item, idx) => (
                                         <span
                                             key={idx}
                                             className="text-sm text-yellow-400 bg-yellow-500/20 px-3 py-1.5 rounded-lg
@@ -221,21 +248,29 @@ export default function Dashboard() {
                             </div>
                         )}
 
+                        {/* Memo */}
+                        {attendee.memo && (
+                            <div className="bg-orange-500/20 border border-orange-500/50 rounded-lg p-3">
+                                <p className="text-xs text-orange-400 mb-1 font-semibold">⚠️ Important Note</p>
+                                <p className="text-sm text-white">{attendee.memo}</p>
+                            </div>
+                        )}
+
                         {/* Additional Info Grid */}
                         <div className="grid grid-cols-2 gap-3 pt-2">
-                            {attendee.tshirtSize && (
+                            {attendee.bodySize && (
                                 <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
-                                    <p className="text-xs text-blue-400 mb-1">T-Shirt Size</p>
+                                    <p className="text-xs text-blue-400 mb-1">Body Size</p>
                                     <p className="text-lg font-bold text-blue-300">
-                                        👕 {attendee.tshirtSize}
+                                        👕 {attendee.bodySize}
                                     </p>
                                 </div>
                             )}
 
-                            {attendee.attendsReception && (
+                            {attendee.attendsReception !== undefined && (
                                 <div
                                     className={`rounded-lg p-3 border ${
-                                        attendee.attendsReception === 'はい' || attendee.attendsReception === 'Yes'
+                                        attendee.attendsReception
                                             ? 'bg-green-500/10 border-green-500/30'
                                             : 'bg-gray-500/10 border-gray-500/30'
                                     }`}
@@ -243,19 +278,35 @@ export default function Dashboard() {
                                     <p className="text-xs text-gray-400 mb-1">Reception</p>
                                     <p
                                         className={`text-sm font-bold ${
-                                            attendee.attendsReception === 'はい' || attendee.attendsReception === 'Yes'
+                                            attendee.attendsReception
                                                 ? 'text-green-300'
                                                 : 'text-gray-300'
                                         }`}
                                     >
                                         🍽️{' '}
-                                        {attendee.attendsReception === 'はい' || attendee.attendsReception === 'Yes'
-                                            ? '参加'
-                                            : '不参加'}
+                                        {attendee.attendsReception ? '参加' : '不参加'}
                                     </p>
                                 </div>
                             )}
                         </div>
+
+                        {/* Novelties */}
+                        {noveltiesArray.length > 0 && (
+                            <div>
+                                <p className="text-xs text-gray-500 uppercase font-semibold mb-2">Additional Novelties</p>
+                                <div className="flex flex-wrap gap-2">
+                                    {noveltiesArray.map((item, idx) => (
+                                        <span
+                                            key={idx}
+                                            className="text-sm text-pink-400 bg-pink-500/20 px-3 py-1.5 rounded-lg
+                                                       border border-pink-500/30 font-medium"
+                                        >
+                                            🎁 {item}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Footer Buttons */}
@@ -318,7 +369,7 @@ export default function Dashboard() {
                     <Search className="absolute left-3 top-3 text-gray-500" size={20} />
                     <input
                         type="text"
-                        placeholder="名前・カナ・会社名で検索..."
+                        placeholder="名前・カナ・所属で検索..."
                         className="w-full bg-gray-800 border border-gray-700 rounded-lg py-3 pl-10 pr-4 text-white focus:outline-none focus:border-blue-500"
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
@@ -342,19 +393,34 @@ export default function Dashboard() {
                     <div className="text-center text-gray-500 py-10">No attendees found.</div>
                 ) : (
                     filteredAttendees.map((attendee) => {
-                        const itemsArray = parseItemsToHandOut(attendee.itemsToHandOut);
+                        const noveltiesArray = parseCommaSeparated(attendee.novelties);
+                        const attributeColor = getAttributeColor(attendee.attribute);
 
                         return (
                             <div
                                 key={attendee.id}
-                                className={`p-4 rounded-lg border ${attendee.status === 'Checked In'
+                                className={`p-4 rounded-lg border ${attendee.checkedIn
                                     ? 'bg-green-900/10 border-green-900/30'
                                     : 'bg-gray-800 border-gray-700'
                                     } flex justify-between items-center transition`}
                             >
                                 <div className="flex-1">
+                                    {/* Attribute Badge */}
+                                    {attendee.attribute && (
+                                        <span className={`inline-block text-xs font-bold px-2 py-0.5 rounded mb-1 ${
+                                            attributeColor === 'purple' ? 'bg-purple-600 text-white' :
+                                            attributeColor === 'yellow' ? 'bg-yellow-600 text-white' :
+                                            attributeColor === 'blue' ? 'bg-blue-600 text-white' :
+                                            attributeColor === 'pink' ? 'bg-pink-600 text-white' :
+                                            attributeColor === 'red' ? 'bg-red-600 text-white' :
+                                            'bg-gray-600 text-white'
+                                        }`}>
+                                            {attendee.attribute}
+                                        </span>
+                                    )}
+
                                     <p className="text-gray-400 text-xs uppercase font-semibold mb-1">
-                                        {attendee.company}
+                                        {attendee.affiliation}
                                     </p>
                                     <h3 className="text-lg font-bold text-white leading-tight mb-1">
                                         {attendee.name}
@@ -368,9 +434,9 @@ export default function Dashboard() {
                                     )}
 
                                     {/* Multiple item badges */}
-                                    {itemsArray.length > 0 && (
+                                    {attendee.items.length > 0 && (
                                         <div className="flex flex-wrap gap-1 mb-2">
-                                            {itemsArray.map((item, idx) => (
+                                            {attendee.items.map((item, idx) => (
                                                 <span
                                                     key={idx}
                                                     className="text-xs text-yellow-500 bg-yellow-500/10 px-2 py-0.5 rounded"
@@ -381,26 +447,38 @@ export default function Dashboard() {
                                         </div>
                                     )}
 
+                                    {/* Novelties */}
+                                    {noveltiesArray.length > 0 && (
+                                        <div className="flex flex-wrap gap-1 mb-2">
+                                            {noveltiesArray.map((item, idx) => (
+                                                <span
+                                                    key={idx}
+                                                    className="text-xs text-pink-500 bg-pink-500/10 px-2 py-0.5 rounded"
+                                                >
+                                                    🎁 {item}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
+
                                     {/* Attribute information */}
                                     <div className="flex gap-3 mt-2">
-                                        {attendee.tshirtSize && (
+                                        {attendee.bodySize && (
                                             <div className="flex items-center gap-1 text-xs text-blue-400 bg-blue-400/10 px-2 py-0.5 rounded">
                                                 <span>👕</span>
-                                                <span>{attendee.tshirtSize}</span>
+                                                <span>{attendee.bodySize}</span>
                                             </div>
                                         )}
 
-                                        {attendee.attendsReception && (
+                                        {attendee.attendsReception !== undefined && (
                                             <div className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded ${
-                                                attendee.attendsReception === 'はい' || attendee.attendsReception === 'Yes'
+                                                attendee.attendsReception
                                                     ? 'text-green-400 bg-green-400/10'
                                                     : 'text-gray-400 bg-gray-400/10'
                                             }`}>
                                                 <span>🍽️</span>
                                                 <span>
-                                                    {attendee.attendsReception === 'はい' || attendee.attendsReception === 'Yes'
-                                                        ? '懇親会参加'
-                                                        : '懇親会不参加'}
+                                                    {attendee.attendsReception ? '懇親会参加' : '懇親会不参加'}
                                                 </span>
                                             </div>
                                         )}
@@ -408,7 +486,7 @@ export default function Dashboard() {
                                 </div>
 
                                 <div>
-                                    {attendee.status === 'Checked In' ? (
+                                    {attendee.checkedIn ? (
                                         <button
                                             onClick={() => handleCancelCheckIn(attendee.id, attendee.name)}
                                             disabled={cancelingCheckIn === attendee.id}

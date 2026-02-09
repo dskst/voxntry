@@ -1,14 +1,17 @@
 export interface Attendee {
   id: string;
-  company: string;
+  affiliation: string; // Changed from 'company' - more inclusive term for organizations, universities, freelancers, etc.
+  attribute?: string; // Optional: Attendee type (Speaker, Sponsor, Staff, Press, General, VIP)
   name: string;
   nameKana?: string; // Optional: for search
-  itemsToHandOut: string;
-  status: 'Checked In' | 'Not Checked In';
-  timeStamp?: string;
+  items: string[]; // Changed from 'itemsToHandOut' - parsed from comma-separated string
+  bodySize?: string; // Changed from 'tshirtSize' - more generic for any apparel (S, M, L, XL, XXL, etc.)
+  novelties?: string; // Optional: Additional novelty items (comma-separated in sheet, but as string here)
+  memo?: string; // Optional: Staff notes for special requirements (wheelchair, allergies, VIP handling, etc.)
+  attendsReception?: boolean; // Changed from string to boolean - Reception attendance
+  checkedIn: boolean; // Changed from 'status' - simplified to boolean
+  checkedInAt?: string; // Changed from 'timeStamp' - more descriptive name
   staffName?: string;
-  tshirtSize?: string; // Optional: T-shirt size (S, M, L, XL, XXL, etc.)
-  attendsReception?: string; // Optional: Reception attendance ("はい" | "いいえ" or "Yes" | "No")
 }
 
 export interface SheetColumnMapping {
@@ -16,14 +19,17 @@ export interface SheetColumnMapping {
   startRow: number;
   columns: {
     id: number;
-    company: number;
+    affiliation: number; // Changed from 'company'
+    attribute?: number; // Optional: Attendee type column
     name: number;
-    itemsToHandOut: number;
-    status: number;
-    timeStamp: number;
+    items: number; // Changed from 'itemsToHandOut'
+    checkedIn: number; // Changed from 'status'
+    checkedInAt: number; // Changed from 'timeStamp'
     staffName: number;
     nameKana?: number; // Optional: Name in kana
-    tshirtSize?: number; // Optional: T-shirt size column
+    bodySize?: number; // Changed from 'tshirtSize' - Optional: Body size column
+    novelties?: number; // Optional: Additional novelty items column
+    memo?: number; // Optional: Staff memo column
     attendsReception?: number; // Optional: Reception attendance column
   };
 }

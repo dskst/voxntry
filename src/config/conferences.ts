@@ -11,15 +11,18 @@ export const conferences: ConferenceConfig[] = [
       startRow: 2,
       columns: {
         id: 0,
-        company: 1,
-        name: 2,
-        itemsToHandOut: 3,
-        status: 4,
-        timeStamp: 5,
-        staffName: 6,
-        nameKana: 7,
-        tshirtSize: 8,
-        attendsReception: 9,
+        attribute: 1,          // New: Attendee type (Speaker, Sponsor, etc.)
+        affiliation: 2,        // Changed from 'company'
+        name: 3,
+        nameKana: 4,
+        items: 5,              // Changed from 'itemsToHandOut'
+        bodySize: 6,           // Changed from 'tshirtSize' (index 8 → 6)
+        novelties: 7,          // New: Additional novelty items
+        memo: 8,               // New: Staff notes
+        attendsReception: 9,  // Moved from index 9 → 12 (kept from original)
+        checkedIn: 10,          // Changed from 'status' (index 4 → 9)
+        checkedInAt: 11,       // Changed from 'timeStamp' (index 5 → 10)
+        staffName: 12,         // Moved from index 6 → 11
       },
     },
   },

@@ -39,7 +39,7 @@ export function normalizeString(str: string): string {
 /**
  * 検索対象フィールドの型定義
  */
-export type SearchableField = 'name' | 'nameKana' | 'company';
+export type SearchableField = 'name' | 'nameKana' | 'affiliation';
 
 /**
  * 検索設定の型定義
@@ -65,7 +65,7 @@ export interface SearchConfig {
  * @example
  * ```typescript
  * const results = filterAttendees(attendees, 'たなか', {
- *   fields: ['name', 'nameKana', 'company'],
+ *   fields: ['name', 'nameKana', 'affiliation'],
  *   normalize: true
  * });
  * ```
@@ -74,7 +74,7 @@ export function filterAttendees<T extends Record<string, any>>(
   items: T[],
   query: string,
   config: SearchConfig = {
-    fields: ['name', 'nameKana', 'company'],
+    fields: ['name', 'nameKana', 'affiliation'],
     normalize: true
   }
 ): T[] {
