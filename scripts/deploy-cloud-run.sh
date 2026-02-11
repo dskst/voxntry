@@ -287,9 +287,10 @@ if [[ $USE_SECRETS =~ ^[Yy]$ ]]; then
                     SECRET_EXISTS=$(gcloud secrets list --filter="name:${SECRET_NAME}" --format="value(name)" 2>/dev/null || echo "")
 
                     if [ -z "$SECRET_EXISTS" ]; then
-                        print_warning "Create password for conference: ${CONF_ID}"
+                        echo ""
+                        print_warning "Create password for conference: ${CONF_ID} (secret: ${SECRET_NAME})"
                         print_info "Generate one using: npm run hash-password \"your-password\""
-                        read -p "Password hash for ${CONF_ID}: " CONF_HASH
+                        read -p "Password hash for ${CONF_ID}: " CONF_HASH < /dev/tty
                         if [ -z "$CONF_HASH" ]; then
                             print_error "Password hash is required"
                             exit 1
@@ -330,10 +331,10 @@ if [[ $USE_SECRETS =~ ^[Yy]$ ]]; then
             if [ "$CONFERENCES_DETECTED" = true ]; then
                 while IFS='|' read -r CONF_ID CONF_VAR; do
                     SECRET_NAME="${CONF_ID}-password"
-                    read -p "Update password for ${CONF_ID}? (y/N): " UPDATE_THIS
+                    read -p "Update password for ${CONF_ID}? (y/N): " UPDATE_THIS < /dev/tty
                     if [[ $UPDATE_THIS =~ ^[Yy]$ ]]; then
                         print_info "Generate hash using: npm run hash-password \"your-new-password\""
-                        read -p "New password hash for ${CONF_ID}: " NEW_HASH
+                        read -p "New password hash for ${CONF_ID}: " NEW_HASH < /dev/tty
                         if [ -n "$NEW_HASH" ]; then
                             echo -n "$NEW_HASH" | gcloud secrets versions add "${SECRET_NAME}" --data-file=-
                             print_success "${SECRET_NAME} updated (new version created)"
@@ -362,6 +363,21 @@ print_info "Command: ${DEPLOY_CMD}"
 echo ""
 
 eval ${DEPLOY_CMD}
+
+# Ensure traffic is routed to the latest revision
+if [ $? -eq 0 ]; then
+    print_info "Routing 100% traffic to latest revision..."
+    gcloud run services update-traffic ${SERVICE_NAME} \
+        --region ${REGION} \
+        --to-latest \
+        --quiet
+
+    if [ $? -eq 0 ]; then
+        print_success "Traffic successfully routed to latest revision"
+    else
+        print_warning "Failed to update traffic routing, but deployment succeeded"
+    fi
+fi
 
 if [ $? -eq 0 ]; then
     print_success "Deployment completed successfully!"
