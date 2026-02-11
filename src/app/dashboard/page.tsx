@@ -39,12 +39,12 @@ function parseCommaSeparated(value: string | undefined): string[] {
 }
 
 // Get attribute badge color class (unified gray color for all attributes)
-function getAttributeColorClass(_attribute: string | undefined): string {
+function getAttributeColorClass(): string {
     return 'bg-theme-bg-muted text-theme-text-heading';
 }
 
 // Get chip color classes for filter chips (unified gray color for all attributes)
-function getAttributeChipColorClass(_attribute: string): string {
+function getAttributeChipColorClass(): string {
     return 'bg-theme-bg-muted text-theme-text-heading ring-2 ring-[var(--theme-bg-muted)]/50';
 }
 
@@ -178,7 +178,7 @@ function ConfirmationModal({
                     {attendee.attributes && attendee.attributes.length > 0 && (
                         <div className="flex flex-wrap justify-center gap-2">
                             {attendee.attributes.map((attr, idx) => (
-                                <span key={idx} className={`text-xs font-bold px-3 py-1 rounded-full ${getAttributeColorClass(attr)}`}>
+                                <span key={idx} className={`text-xs font-bold px-3 py-1 rounded-full ${getAttributeColorClass()}`}>
                                     {attr}
                                 </span>
                             ))}
@@ -855,7 +855,7 @@ export default function Dashboard() {
 
                                                             {/* Attribute label with color indicator */}
                                                             <span className="flex-1">{attr}</span>
-                                                            <span className={`flex-shrink-0 w-2 h-2 rounded-full ${getAttributeColorClass(attr)}`} />
+                                                            <span className={`flex-shrink-0 w-2 h-2 rounded-full ${getAttributeColorClass()}`} />
                                                         </button>
                                                     );
                                                 })}
@@ -875,7 +875,7 @@ export default function Dashboard() {
                                     key={attr}
                                     onClick={() => toggleAttribute(attr)}
                                     className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer transition ${FOCUS_RING}
-                                        ${getAttributeChipColorClass(attr)}`}
+                                        ${getAttributeChipColorClass()}`}
                                     aria-label={`Remove ${attr} filter`}
                                 >
                                     <span>{attr}</span>
@@ -975,7 +975,7 @@ export default function Dashboard() {
                                     {attendee.attributes && attendee.attributes.length > 0 && (
                                         <div className="flex flex-wrap gap-1 mb-1">
                                             {attendee.attributes.map((attr, idx) => (
-                                                <span key={idx} className={`inline-block text-xs font-bold px-2 py-0.5 rounded ${getAttributeColorClass(attr)}`}>
+                                                <span key={idx} className={`inline-block text-xs font-bold px-2 py-0.5 rounded ${getAttributeColorClass()}`}>
                                                     {attr}
                                                 </span>
                                             ))}

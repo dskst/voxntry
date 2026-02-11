@@ -12,6 +12,8 @@ export function ThemeSwitcher() {
 
   // クライアント側でマウントされるまで待つ（SSR/Hydration mismatch回避）
   useEffect(() => {
+    // This is intentional for SSR/Hydration mismatch prevention
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 
