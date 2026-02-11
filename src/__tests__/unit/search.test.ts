@@ -1,13 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { normalizeString, filterAttendees } from '@/utils/search';
+import { normalizeString, filterAttendees, toSearchKana } from '@/utils/search';
 
 /**
  * Comprehensive Search Utility Tests
  *
  * Coverage:
  * - normalizeString (katakana→hiragana, full-width→half-width, case normalization)
- * - filterAttendees (multi-field OR search, partial matching)
- * - Japanese character handling (hiragana, katakana, kanji)
+ * - toSearchKana (romaji→hiragana conversion using wanakana)
+ * - filterAttendees (multi-field OR search, partial matching, selective kana conversion)
+ * - Japanese character handling (hiragana, katakana, kanji, romaji)
  * - Edge cases and security scenarios
  */
 
@@ -650,6 +651,389 @@ describe('Search Utilities - Comprehensive Unit Tests', () => {
           fields: ['attributes'] as any,
         });
         expect(results).toHaveLength(2);
+      });
+    });
+  });
+
+  describe('toSearchKana - Romaji to Kana Conversion', () => {
+    describe('Basic Romaji to Hiragana', () => {
+      it('should convert romaji to hiragana', () => {
+        expect(toSearchKana('tanaka')).toBe('たなか');
+        expect(toSearchKana('yamada')).toBe('やまだ');
+        expect(toSearchKana('satou')).toBe('さとう');
+      });
+
+      it('should convert full name romaji', () => {
+        expect(toSearchKana('tanakatarou')).toBe('たなかたろう');
+        expect(toSearchKana('yamadahanako')).toBe('やまだはなこ');
+      });
+
+      it('should handle double consonants (sokuon)', () => {
+        expect(toSearchKana('kitte')).toBe('きって');
+        expect(toSearchKana('motto')).toBe('もっと');
+      });
+
+      it('should handle n before consonant', () => {
+        expect(toSearchKana('shinnichi')).toBe('しんにち');
+        expect(toSearchKana('kantan')).toBe('かんたん');
+      });
+
+      it('should handle long vowels', () => {
+        expect(toSearchKana('toukyou')).toBe('とうきょう');
+        expect(toSearchKana('oosaka')).toBe('おおさか');
+      });
+
+      it('should handle combination sounds (youon)', () => {
+        expect(toSearchKana('sha')).toBe('しゃ');
+        expect(toSearchKana('chi')).toBe('ち');
+        expect(toSearchKana('tsu')).toBe('つ');
+        expect(toSearchKana('kyo')).toBe('きょ');
+      });
+    });
+
+    describe('Katakana to Hiragana', () => {
+      it('should convert katakana to hiragana', () => {
+        expect(toSearchKana('タナカ')).toBe('たなか');
+        expect(toSearchKana('ヤマダ')).toBe('やまだ');
+      });
+
+      it('should handle katakana long vowel mark', () => {
+        // wanakana converts ー to actual vowel sound
+        expect(toSearchKana('コーヒー')).toBe('こうひい');
+      });
+    });
+
+    describe('Passthrough Behavior', () => {
+      it('should preserve kanji characters', () => {
+        expect(toSearchKana('田中')).toBe('田中');
+        expect(toSearchKana('株式会社')).toBe('株式会社');
+      });
+
+      it('should preserve hiragana as-is', () => {
+        expect(toSearchKana('たなか')).toBe('たなか');
+        expect(toSearchKana('やまだ')).toBe('やまだ');
+      });
+    });
+
+    describe('Edge Cases', () => {
+      it('should handle empty string', () => {
+        expect(toSearchKana('')).toBe('');
+      });
+
+      it('should handle whitespace', () => {
+        expect(toSearchKana(' ')).toBe(' ');
+      });
+
+      it('should handle numbers', () => {
+        expect(toSearchKana('123')).toBe('123');
+      });
+
+      it('should handle special characters', () => {
+        // wanakana converts some ASCII punctuation to full-width equivalents
+        expect(toSearchKana('!@#$%')).toBe('！@#$%');
+      });
+    });
+  });
+
+  describe('filterAttendees - Kana Conversion for Kana Fields', () => {
+    // Sample data with both kana fields
+    const attendeesWithKana = [
+      {
+        id: '1',
+        name: '田中太郎',
+        nameKana: 'タナカタロウ',
+        affiliation: '株式会社ABC',
+        affiliationKana: 'カブシキガイシャエービーシー',
+      },
+      {
+        id: '2',
+        name: '山田花子',
+        nameKana: 'ヤマダハナコ',
+        affiliation: '株式会社DEF',
+        affiliationKana: 'カブシキガイシャディーイーエフ',
+      },
+      {
+        id: '3',
+        name: '佐藤次郎',
+        nameKana: 'サトウジロウ',
+        affiliation: '東京大学',
+        affiliationKana: 'トウキョウダイガク',
+      },
+      {
+        id: '4',
+        name: 'John Smith',
+        nameKana: 'ジョンスミス',
+        affiliation: 'XYZ Corporation',
+        affiliationKana: undefined, // No affiliationKana
+      },
+    ];
+
+    describe('Romaji Search Against Kana Fields', () => {
+      it('should match romaji query against nameKana', () => {
+        const results = filterAttendees(attendeesWithKana, 'tanaka', {
+          fields: ['nameKana'],
+          normalize: true,
+        });
+        expect(results).toHaveLength(1);
+        expect(results[0].name).toBe('田中太郎');
+      });
+
+      it('should match romaji query against affiliationKana', () => {
+        const results = filterAttendees(attendeesWithKana, 'toukyou', {
+          fields: ['affiliationKana'],
+          normalize: true,
+        });
+        expect(results).toHaveLength(1);
+        expect(results[0].name).toBe('佐藤次郎');
+      });
+
+      it('should match partial romaji against nameKana', () => {
+        const results = filterAttendees(attendeesWithKana, 'yamada', {
+          fields: ['nameKana'],
+          normalize: true,
+        });
+        expect(results).toHaveLength(1);
+        expect(results[0].name).toBe('山田花子');
+      });
+
+      it('should match partial romaji against affiliationKana', () => {
+        const results = filterAttendees(attendeesWithKana, 'daigaku', {
+          fields: ['affiliationKana'],
+          normalize: true,
+        });
+        expect(results).toHaveLength(1);
+        expect(results[0].name).toBe('佐藤次郎');
+      });
+    });
+
+    describe('Selective Conversion - Kana Fields vs Non-Kana Fields', () => {
+      it('should NOT convert romaji for name field', () => {
+        // "tanaka" should not match name "田中太郎" (kanji) via romaji→kana conversion
+        const results = filterAttendees(attendeesWithKana, 'tanaka', {
+          fields: ['name'],
+          normalize: true,
+        });
+        expect(results).toHaveLength(0);
+      });
+
+      it('should NOT convert romaji for affiliation field', () => {
+        // "toukyou" should not match affiliation "東京大学" (kanji) via romaji→kana conversion
+        const results = filterAttendees(attendeesWithKana, 'toukyou', {
+          fields: ['affiliation'],
+          normalize: true,
+        });
+        expect(results).toHaveLength(0);
+      });
+
+      it('should convert romaji only for kana fields in mixed config', () => {
+        // "tanaka" with all fields: should match via nameKana (kana conversion) but not name/affiliation
+        const results = filterAttendees(attendeesWithKana, 'tanaka', {
+          fields: ['name', 'nameKana', 'affiliation', 'affiliationKana'],
+          normalize: true,
+        });
+        expect(results).toHaveLength(1);
+        expect(results[0].name).toBe('田中太郎');
+      });
+
+      it('should match affiliation directly without kana conversion', () => {
+        // "ABC" should match affiliation "株式会社ABC" directly
+        const results = filterAttendees(attendeesWithKana, 'ABC', {
+          fields: ['affiliation'],
+          normalize: true,
+        });
+        expect(results).toHaveLength(1);
+        expect(results[0].name).toBe('田中太郎');
+      });
+
+      it('should match name directly without kana conversion', () => {
+        // "田中" should match name field directly
+        const results = filterAttendees(attendeesWithKana, '田中', {
+          fields: ['name'],
+          normalize: true,
+        });
+        expect(results).toHaveLength(1);
+        expect(results[0].name).toBe('田中太郎');
+      });
+    });
+
+    describe('Backward Compatibility - Existing Search Behavior', () => {
+      it('should still match hiragana query against katakana nameKana', () => {
+        const results = filterAttendees(attendeesWithKana, 'たなか', {
+          fields: ['nameKana'],
+          normalize: true,
+        });
+        expect(results).toHaveLength(1);
+        expect(results[0].name).toBe('田中太郎');
+      });
+
+      it('should still match katakana query against katakana nameKana', () => {
+        const results = filterAttendees(attendeesWithKana, 'タナカ', {
+          fields: ['nameKana'],
+          normalize: true,
+        });
+        expect(results).toHaveLength(1);
+        expect(results[0].name).toBe('田中太郎');
+      });
+
+      it('should still match kanji query against name', () => {
+        const results = filterAttendees(attendeesWithKana, '田中', {
+          fields: ['name', 'nameKana', 'affiliation', 'affiliationKana'],
+          normalize: true,
+        });
+        expect(results).toHaveLength(1);
+        expect(results[0].name).toBe('田中太郎');
+      });
+
+      it('should still handle empty query', () => {
+        const results = filterAttendees(attendeesWithKana, '');
+        expect(results).toHaveLength(4);
+      });
+
+      it('should still handle whitespace-only query', () => {
+        const results = filterAttendees(attendeesWithKana, '   ');
+        expect(results).toHaveLength(4);
+      });
+    });
+
+    describe('AffiliationKana Field', () => {
+      it('should search affiliationKana with hiragana', () => {
+        const results = filterAttendees(attendeesWithKana, 'かぶしき', {
+          fields: ['affiliationKana'],
+          normalize: true,
+        });
+        // Two attendees have affiliationKana starting with カブシキ
+        expect(results).toHaveLength(2);
+      });
+
+      it('should search affiliationKana with katakana', () => {
+        const results = filterAttendees(attendeesWithKana, 'トウキョウ', {
+          fields: ['affiliationKana'],
+          normalize: true,
+        });
+        expect(results).toHaveLength(1);
+        expect(results[0].name).toBe('佐藤次郎');
+      });
+
+      it('should search affiliationKana with romaji', () => {
+        const results = filterAttendees(attendeesWithKana, 'kabushiki', {
+          fields: ['affiliationKana'],
+          normalize: true,
+        });
+        expect(results).toHaveLength(2);
+      });
+
+      it('should handle undefined affiliationKana', () => {
+        const results = filterAttendees(attendeesWithKana, 'kabushiki', {
+          fields: ['affiliationKana'],
+          normalize: true,
+        });
+        // John Smith has undefined affiliationKana, should not cause error
+        expect(results).toHaveLength(2);
+      });
+    });
+
+    describe('Edge Cases with Kana Conversion', () => {
+      it('should handle non-Japanese text in kana fields', () => {
+        // English text shouldn't break kana field search
+        const results = filterAttendees(attendeesWithKana, 'hello', {
+          fields: ['nameKana', 'affiliationKana'],
+          normalize: true,
+        });
+        expect(results).toHaveLength(0);
+      });
+
+      it('should handle mixed romaji and kanji', () => {
+        // Mixed input - kanji won't be converted by wanakana, romaji will
+        const results = filterAttendees(attendeesWithKana, '田中tanaka', {
+          fields: ['nameKana'],
+          normalize: true,
+        });
+        // "田中たなか" won't match "たなかたろう" as substring
+        expect(results).toHaveLength(0);
+      });
+
+      it('should handle single character romaji search', () => {
+        // Single 'a' converts to 'あ' for kana fields
+        const results = filterAttendees(attendeesWithKana, 'a', {
+          fields: ['nameKana'],
+          normalize: true,
+        });
+        // 'あ' might appear in some normalized kana values
+        // This is a valid search behavior
+        expect(results).toBeDefined();
+      });
+
+      it('should handle numbers in kana field search', () => {
+        const results = filterAttendees(attendeesWithKana, '123', {
+          fields: ['nameKana', 'affiliationKana'],
+          normalize: true,
+        });
+        expect(results).toHaveLength(0);
+      });
+
+      it('should produce different queries for kana vs non-kana fields', () => {
+        // "satou" as romaji should match nameKana but not name
+        const kanaResults = filterAttendees(attendeesWithKana, 'satou', {
+          fields: ['nameKana'],
+          normalize: true,
+        });
+        const nameResults = filterAttendees(attendeesWithKana, 'satou', {
+          fields: ['name'],
+          normalize: true,
+        });
+        expect(kanaResults).toHaveLength(1);
+        expect(kanaResults[0].name).toBe('佐藤次郎');
+        expect(nameResults).toHaveLength(0);
+      });
+    });
+
+    describe('Full Integration Scenarios', () => {
+      it('should find attendee by romaji across all fields', () => {
+        // Use default 4-field search
+        const results = filterAttendees(attendeesWithKana, 'satou', {
+          fields: ['name', 'nameKana', 'affiliation', 'affiliationKana'],
+          normalize: true,
+        });
+        expect(results).toHaveLength(1);
+        expect(results[0].name).toBe('佐藤次郎');
+      });
+
+      it('should find attendee by kanji name across all fields', () => {
+        const results = filterAttendees(attendeesWithKana, '佐藤', {
+          fields: ['name', 'nameKana', 'affiliation', 'affiliationKana'],
+          normalize: true,
+        });
+        expect(results).toHaveLength(1);
+        expect(results[0].name).toBe('佐藤次郎');
+      });
+
+      it('should find attendee by affiliation in English', () => {
+        const results = filterAttendees(attendeesWithKana, 'xyz', {
+          fields: ['name', 'nameKana', 'affiliation', 'affiliationKana'],
+          normalize: true,
+        });
+        expect(results).toHaveLength(1);
+        expect(results[0].name).toBe('John Smith');
+      });
+
+      it('should find attendee by affiliationKana in romaji', () => {
+        const results = filterAttendees(attendeesWithKana, 'toukyoudaigaku', {
+          fields: ['name', 'nameKana', 'affiliation', 'affiliationKana'],
+          normalize: true,
+        });
+        expect(results).toHaveLength(1);
+        expect(results[0].name).toBe('佐藤次郎');
+      });
+
+      it('should not duplicate results when query matches multiple fields', () => {
+        // "たなか" matches nameKana for id=1, should return only once
+        const results = filterAttendees(attendeesWithKana, 'たなか', {
+          fields: ['name', 'nameKana', 'affiliation', 'affiliationKana'],
+          normalize: true,
+        });
+        expect(results).toHaveLength(1);
+        const ids = results.map(r => r.id);
+        expect(new Set(ids).size).toBe(ids.length);
       });
     });
   });

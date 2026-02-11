@@ -189,16 +189,17 @@ describe('google-sheets-parser', () => {
         id: 0,
         attribute: 1,
         affiliation: 2,
-        name: 3,
-        nameKana: 4,
-        items: 5,
-        bodySize: 6,
-        novelties: 7,
-        memo: 8,
-        checkedIn: 9,
-        checkedInAt: 10,
-        staffName: 11,
-        attendsReception: 12,
+        affiliationKana: 3,
+        name: 4,
+        nameKana: 5,
+        items: 6,
+        bodySize: 7,
+        novelties: 8,
+        memo: 9,
+        checkedIn: 10,
+        checkedInAt: 11,
+        staffName: 12,
+        attendsReception: 13,
       },
     };
 
@@ -207,6 +208,7 @@ describe('google-sheets-parser', () => {
         '001',
         'VIP',
         'ACME Corp',
+        'エーシーエムイー',
         'John Doe',
         'ジョン・ドー',
         'item1,item2',
@@ -225,6 +227,7 @@ describe('google-sheets-parser', () => {
         id: '001',
         attributes: ['VIP'],
         affiliation: 'ACME Corp',
+        affiliationKana: 'エーシーエムイー',
         name: 'John Doe',
         nameKana: 'ジョン・ドー',
         items: ['item1', 'item2'],
@@ -239,7 +242,7 @@ describe('google-sheets-parser', () => {
     });
 
     it('should handle minimal row data', () => {
-      const row = ['', '', 'Company', 'Name', '', '', '', '', '', 'FALSE', '', '', ''];
+      const row = ['', '', 'Company', '', 'Name', '', '', '', '', '', 'FALSE', '', '', ''];
 
       const attendee = mapRowToAttendee(row, 5, mockConfig);
 
@@ -252,7 +255,7 @@ describe('google-sheets-parser', () => {
     });
 
     it('should handle missing columns gracefully', () => {
-      const row = ['002', '', 'Corp', 'Jane Smith'];
+      const row = ['002', '', 'Corp', '', 'Jane Smith'];
 
       const attendee = mapRowToAttendee(row, 1, mockConfig);
 
@@ -263,7 +266,7 @@ describe('google-sheets-parser', () => {
     });
 
     it('should use fallback ID when id column is empty', () => {
-      const row = ['', '', '', 'No ID User'];
+      const row = ['', '', '', '', 'No ID User'];
 
       const attendee = mapRowToAttendee(row, 10, mockConfig);
 
@@ -289,10 +292,56 @@ describe('google-sheets-parser', () => {
 
       const attendee = mapRowToAttendee(row, 0, configWithoutOptional);
 
+      expect(attendee.affiliationKana).toBeUndefined();
       expect(attendee.attributes).toBeUndefined();
       expect(attendee.nameKana).toBeUndefined();
       expect(attendee.bodySize).toBeUndefined();
       expect(attendee.attendsReception).toBeUndefined();
+    });
+
+    it('should parse affiliationKana when column is configured', () => {
+      const row = [
+        '011',
+        '',
+        '株式会社テスト',
+        'カブシキガイシャテスト',
+        'テストユーザー',
+        'テストユーザー',
+        '',
+        '',
+        '',
+        '',
+        'FALSE',
+        '',
+        '',
+        '',
+      ];
+
+      const attendee = mapRowToAttendee(row, 0, mockConfig);
+
+      expect(attendee.affiliationKana).toBe('カブシキガイシャテスト');
+    });
+
+    it('should set affiliationKana to undefined when column is not configured', () => {
+      const configWithoutAffiliationKana: SheetColumnMapping = {
+        sheetName: 'Sheet1',
+        startRow: 2,
+        columns: {
+          id: 0,
+          affiliation: 1,
+          name: 2,
+          items: 3,
+          checkedIn: 4,
+          checkedInAt: 5,
+          staffName: 6,
+        },
+      };
+
+      const row = ['012', 'Company', 'User', '', 'FALSE', '', ''];
+
+      const attendee = mapRowToAttendee(row, 0, configWithoutAffiliationKana);
+
+      expect(attendee.affiliationKana).toBeUndefined();
     });
 
     it('should parse comma-separated attributes', () => {
@@ -300,6 +349,7 @@ describe('google-sheets-parser', () => {
         '004',
         'Speaker,Sponsor',
         'Tech Corp',
+        '',
         'Jane Smith',
         '',
         '',
@@ -322,6 +372,7 @@ describe('google-sheets-parser', () => {
         '005',
         '登壇者、スポンサー',
         'Japanese Corp',
+        '',
         '田中太郎',
         '',
         '',
@@ -344,6 +395,7 @@ describe('google-sheets-parser', () => {
         '006',
         '',
         'Corp',
+        '',
         'No Attribute',
         '',
         '',
@@ -366,6 +418,7 @@ describe('google-sheets-parser', () => {
         '007',
         ' Speaker , Sponsor , VIP ',
         'Corp',
+        '',
         'User',
         '',
         '',
@@ -390,6 +443,7 @@ describe('google-sheets-parser', () => {
         '008',
         'Speaker,Sponsor,VIP,Staff,Press,General', // 6 attributes - exceeds limit
         'Corp',
+        '',
         'User',
         '',
         '',
@@ -419,6 +473,7 @@ describe('google-sheets-parser', () => {
         '009',
         longAttribute,
         'Corp',
+        '',
         'User',
         '',
         '',
@@ -449,6 +504,7 @@ describe('google-sheets-parser', () => {
         '010',
         `${longAttribute1},${longAttribute2},C,D,E,F`, // 6 attributes, first 2 too long
         'Corp',
+        '',
         'User',
         '',
         '',

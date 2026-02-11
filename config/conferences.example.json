@@ -19,16 +19,17 @@
           "id": 0,
           "attribute": 1,
           "affiliation": 2,
-          "name": 3,
-          "nameKana": 4,
-          "items": 5,
-          "bodySize": 6,
-          "novelties": 7,
-          "memo": 8,
-          "attendsReception": 9,
-          "checkedIn": 10,
-          "checkedInAt": 11,
-          "staffName": 12
+          "affiliationKana": 3,
+          "name": 4,
+          "nameKana": 5,
+          "items": 6,
+          "bodySize": 7,
+          "novelties": 8,
+          "memo": 9,
+          "attendsReception": 10,
+          "checkedIn": 11,
+          "checkedInAt": 12,
+          "staffName": 13
         }
       }
     }
@@ -48,20 +49,21 @@
     "_note": "Your Google Spreadsheet should have the following structure",
     "required_columns": [
       "Column A (0): ID - Unique identifier for each attendee",
-      "Column D (3): Name - Attendee's full name",
-      "Column K (10): CheckedIn - Boolean or status field",
-      "Column L (11): CheckedInAt - Timestamp field",
-      "Column M (12): StaffName - Staff who performed check-in"
+      "Column E (4): Name - Attendee's full name",
+      "Column L (11): CheckedIn - Boolean or status field",
+      "Column M (12): CheckedInAt - Timestamp field",
+      "Column N (13): StaffName - Staff who performed check-in"
     ],
     "optional_columns": [
       "Column B (1): Attribute - Attendee type (Speaker, Sponsor, etc.)",
       "Column C (2): Affiliation - Company or organization",
-      "Column E (4): NameKana - Name in kana (Japanese)",
-      "Column F (5): Items - Items to hand out",
-      "Column G (6): BodySize - T-shirt or merchandise size",
-      "Column H (7): Novelties - Additional novelty items",
-      "Column I (8): Memo - Staff notes",
-      "Column J (9): AttendsReception - Reception attendance flag"
+      "Column D (3): AffiliationKana - Affiliation name in kana (Japanese)",
+      "Column F (5): NameKana - Name in kana (Japanese)",
+      "Column G (6): Items - Items to hand out",
+      "Column H (7): BodySize - T-shirt or merchandise size",
+      "Column I (8): Novelties - Additional novelty items",
+      "Column J (9): Memo - Staff notes",
+      "Column K (10): AttendsReception - Reception attendance flag"
     ]
   },
   "_column_mapping_guide": {

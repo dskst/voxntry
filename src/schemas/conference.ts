@@ -29,6 +29,7 @@ export const SheetColumnMappingSchema = z.object({
     checkedInAt: z.number().int().min(0),
     staffName: z.number().int().min(0),
     // Optional columns
+    affiliationKana: z.number().int().min(0).optional(),
     attribute: z.number().int().min(0).optional(),
     nameKana: z.number().int().min(0).optional(),
     bodySize: z.number().int().min(0).optional(),

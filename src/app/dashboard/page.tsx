@@ -8,7 +8,7 @@ import { filterAttendees, SearchableField } from '@/utils/search';
 import { api } from '@/lib/api-client';
 
 // 検索対象フィールドを定数として定義（コンポーネント外）
-const SEARCH_FIELDS: SearchableField[] = ['name', 'nameKana', 'affiliation'];
+const SEARCH_FIELDS: SearchableField[] = ['name', 'nameKana', 'affiliation', 'affiliationKana'];
 
 export default function Dashboard() {
     const router = useRouter();
@@ -267,7 +267,7 @@ export default function Dashboard() {
                         <div className="grid grid-cols-2 gap-3 pt-2">
                             {attendee.bodySize && (
                                 <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
-                                    <p className="text-xs text-blue-400 mb-1">Body Size</p>
+                                    <p className="text-xs text-blue-400 mb-1">Size</p>
                                     <p className="text-lg font-bold text-blue-300">
                                         👕 {attendee.bodySize}
                                     </p>
@@ -376,11 +376,24 @@ export default function Dashboard() {
                     <Search className="absolute left-3 top-3 text-gray-500" size={20} />
                     <input
                         type="text"
-                        placeholder="名前・カナ・所属で検索..."
-                        className="w-full bg-gray-800 border border-gray-700 rounded-lg py-3 pl-10 pr-4 text-white focus:outline-none focus:border-blue-500"
+                        placeholder="名前・かな・所属で検索..."
+                        className="w-full bg-gray-800 border border-gray-700 rounded-lg py-3 pl-10 pr-10 text-white focus:outline-none focus:border-blue-500"
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                     />
+                    {query && (
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setQuery('');
+                                setDebouncedQuery('');
+                            }}
+                            className="absolute right-3 top-3 text-gray-500 hover:text-white transition"
+                            aria-label="検索をクリア"
+                        >
+                            <X size={20} />
+                        </button>
+                    )}
                 </div>
                 {debouncedQuery && (
                     <div className="text-sm text-gray-400">

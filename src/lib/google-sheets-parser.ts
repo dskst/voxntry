@@ -97,6 +97,7 @@ export const mapRowToAttendee = (
       return {
         id: row[cols.id] || `row-${index + config.startRow}`,
         affiliation: row[cols.affiliation] || '',
+        affiliationKana: cols.affiliationKana !== undefined ? row[cols.affiliationKana] : undefined,
         attributes: truncated.length > 0 ? truncated : undefined,
         name: row[cols.name] || '',
         nameKana: cols.nameKana !== undefined ? row[cols.nameKana] : undefined,
@@ -117,6 +118,7 @@ export const mapRowToAttendee = (
   return {
     id: row[cols.id] || `row-${index + config.startRow}`, // Fallback ID
     affiliation: row[cols.affiliation] || '',
+    affiliationKana: cols.affiliationKana !== undefined ? row[cols.affiliationKana] : undefined,
     attributes,
     name: row[cols.name] || '',
     nameKana: cols.nameKana !== undefined ? row[cols.nameKana] : undefined,

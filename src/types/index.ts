@@ -1,6 +1,7 @@
 export interface Attendee {
   id: string;
   affiliation: string; // Changed from 'company' - more inclusive term for organizations, universities, freelancers, etc.
+  affiliationKana?: string; // Optional: Affiliation name in kana for search
   attributes?: string[]; // Optional: Array of attendee types (Speaker, Sponsor, Staff, Press, General, VIP) - max 5 items
   name: string;
   nameKana?: string; // Optional: for search
@@ -20,6 +21,7 @@ export interface SheetColumnMapping {
   columns: {
     id: number;
     affiliation: number; // Changed from 'company'
+    affiliationKana?: number; // Optional: Affiliation name in kana column
     attribute?: number; // Optional: Attendee type column
     name: number;
     items: number; // Changed from 'itemsToHandOut'

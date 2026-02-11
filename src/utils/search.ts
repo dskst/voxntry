@@ -4,8 +4,11 @@
  * 参加者の検索機能を提供します。
  * - 全角・半角の正規化
  * - ひらがな・カタカナの統一
+ * - ローマ字→かな変換（カナフィールド用）
  * - 複数フィールドからの部分一致検索
  */
+
+import { toHiragana } from 'wanakana';
 
 /**
  * 文字列を正規化する
@@ -39,7 +42,34 @@ export function normalizeString(str: string): string {
 /**
  * 検索対象フィールドの型定義
  */
-export type SearchableField = 'name' | 'nameKana' | 'affiliation';
+export type SearchableField = 'name' | 'nameKana' | 'affiliation' | 'affiliationKana';
+
+/**
+ * カナ変換対象フィールド
+ * これらのフィールドでは、ローマ字入力をかなに変換してから検索する
+ */
+const KANA_FIELDS: ReadonlySet<string> = new Set(['nameKana', 'affiliationKana']);
+
+/**
+ * ローマ字をひらがなに変換する（検索用）
+ *
+ * wanakanaのtoHiraganaを使用して、ローマ字入力をひらがなに変換します。
+ * カタカナ入力もひらがなに変換されます。
+ * 漢字やその他の文字はそのまま保持されます。
+ *
+ * @param str - 変換する文字列
+ * @returns ひらがなに変換された文字列
+ *
+ * @example
+ * ```typescript
+ * toSearchKana('tanaka') // → 'たなか'
+ * toSearchKana('タナカ') // → 'たなか'
+ * toSearchKana('田中')   // → '田中' (漢字はそのまま)
+ * ```
+ */
+export function toSearchKana(str: string): string {
+  return toHiragana(str, { passRomaji: false });
+}
 
 /**
  * 検索設定の型定義
@@ -75,7 +105,7 @@ export function filterAttendees<T extends Record<string, any>>(
   items: T[],
   query: string,
   config: SearchConfig = {
-    fields: ['name', 'nameKana', 'affiliation'],
+    fields: ['name', 'nameKana', 'affiliation', 'affiliationKana'],
     normalize: true
   }
 ): T[] {
@@ -85,8 +115,13 @@ export function filterAttendees<T extends Record<string, any>>(
   }
 
   // 検索クエリを正規化（設定による）
-  const searchQuery = config.normalize !== false
+  const normalizedQuery = config.normalize !== false
     ? normalizeString(query)
+    : query.toLowerCase();
+
+  // カナフィールド用: ローマ字→ひらがな変換後に正規化
+  const kanaQuery = config.normalize !== false
+    ? normalizeString(toSearchKana(query))
     : query.toLowerCase();
 
   return items.filter((item) => {
@@ -98,6 +133,9 @@ export function filterAttendees<T extends Record<string, any>>(
       if (!fieldValue) {
         return false;
       }
+
+      // フィールドタイプに応じてクエリを選択
+      const searchQuery = KANA_FIELDS.has(field) ? kanaQuery : normalizedQuery;
 
       // 文字列配列の場合、配列内のいずれかの要素がマッチすればtrue
       if (Array.isArray(fieldValue)) {
