@@ -6,12 +6,14 @@ import { Search, UserCheck, RefreshCw, LogOut, X, CheckCircle2, Loader2 } from '
 import { useRouter } from 'next/navigation';
 import { filterAttendees, SearchableField } from '@/utils/search';
 import { api } from '@/lib/api-client';
+import { ThemeSwitcher } from '@/components/ThemeSwitcher';
+import { clearStoredTheme } from '@/components/ThemeProvider';
 
 // 検索対象フィールドを定数として定義（コンポーネント外）
 const SEARCH_FIELDS: SearchableField[] = ['name', 'nameKana', 'affiliation', 'affiliationKana'];
 
-// Focus ring utility for keyboard accessibility
-const FOCUS_RING = 'focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2 focus:ring-offset-gray-900';
+// Focus ring utility for keyboard accessibility (theme-aware)
+const FOCUS_RING = 'focus:outline-none focus:ring-2 focus:ring-[var(--theme-accent-ring)] focus:ring-offset-2 focus:ring-offset-[var(--theme-bg-base)]';
 
 // Helper to parse comma-separated string into array (for novelties)
 function parseCommaSeparated(value: string | undefined): string[] {
@@ -22,14 +24,14 @@ function parseCommaSeparated(value: string | undefined): string[] {
 
 // Get attribute badge color class
 function getAttributeColorClass(attribute: string | undefined): string {
-    if (!attribute) return 'bg-gray-600 text-white';
+    if (!attribute) return 'bg-theme-bg-muted text-theme-text-heading';
     const attr = attribute.toLowerCase();
     if (attr.includes('speaker') || attr.includes('登壇')) return 'bg-purple-600 text-white';
     if (attr.includes('sponsor') || attr.includes('スポンサー')) return 'bg-yellow-600 text-white';
     if (attr.includes('staff') || attr.includes('スタッフ')) return 'bg-blue-600 text-white';
     if (attr.includes('press') || attr.includes('報道')) return 'bg-pink-600 text-white';
     if (attr.includes('vip')) return 'bg-red-600 text-white';
-    return 'bg-gray-600 text-white';
+    return 'bg-theme-bg-muted text-theme-text-heading';
 }
 
 // Toast notification type
@@ -48,8 +50,8 @@ function ToastNotification({ toast, onDismiss }: { toast: ToastData; onDismiss: 
 
     return (
         <div
-            className={`flex items-center justify-between gap-3 rounded-xl p-4 shadow-2xl backdrop-blur font-medium
-                ${toast.type === 'error' ? 'bg-red-600/90 text-white' : 'bg-emerald-600/90 text-white'}`}
+            className={`flex items-center justify-between gap-3 rounded-xl p-4 shadow-2xl backdrop-blur font-medium text-white
+                ${toast.type === 'error' ? 'bg-[var(--theme-toast-error-bg)]' : 'bg-[var(--theme-toast-success-bg)]'}`}
             role="alert"
         >
             <span>{toast.message}</span>
@@ -114,7 +116,7 @@ function ConfirmationModal({
 
     return (
         <div
-            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-[var(--theme-bg-overlay)] backdrop-blur-sm z-50 flex items-center justify-center p-4"
             onClick={onCancel}
         >
             <div
@@ -122,16 +124,16 @@ function ConfirmationModal({
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="checkin-modal-title"
-                className="bg-gray-800 border border-gray-700 rounded-2xl max-w-lg w-full shadow-2xl"
+                className="bg-theme-bg-card border border-theme-border-default rounded-2xl max-w-lg w-full shadow-2xl"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
-                <div className="flex justify-between items-center p-6 border-b border-gray-700">
-                    <h2 id="checkin-modal-title" className="text-xl font-bold text-white">Check-In Confirmation</h2>
+                <div className="flex justify-between items-center p-6 border-b border-theme-border-default">
+                    <h2 id="checkin-modal-title" className="text-xl font-bold text-theme-text-heading">Check-In Confirmation</h2>
                     <button
                         onClick={onCancel}
                         disabled={isLoading}
-                        className={`text-gray-400 hover:text-white transition p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-gray-700 ${FOCUS_RING}`}
+                        className={`text-theme-text-muted hover:text-theme-text-heading transition p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-theme-bg-elevated ${FOCUS_RING}`}
                         aria-label="Close dialog"
                     >
                         <X size={24} />
@@ -142,14 +144,14 @@ function ConfirmationModal({
                 <div className="p-6 space-y-4">
                     {/* Name - HERO element */}
                     <div className="text-center">
-                        <p className="text-3xl font-extrabold text-white">{attendee.name}</p>
+                        <p className="text-3xl font-extrabold text-theme-text-heading">{attendee.name}</p>
                         {attendee.nameKana && (
-                            <p className="text-sm text-gray-400 mt-1">{attendee.nameKana}</p>
+                            <p className="text-sm text-theme-text-muted mt-1">{attendee.nameKana}</p>
                         )}
                     </div>
 
                     {/* Affiliation */}
-                    <p className="text-lg text-gray-300 text-center">{attendee.affiliation}</p>
+                    <p className="text-lg text-theme-text-secondary text-center">{attendee.affiliation}</p>
 
                     {/* Attribute Badges */}
                     {attendee.attributes && attendee.attributes.length > 0 && (
@@ -162,18 +164,18 @@ function ConfirmationModal({
                         </div>
                     )}
 
-                    <div className="border-t border-gray-700" />
+                    <div className="border-t border-theme-border-default" />
 
                     {/* Items to Hand Out */}
                     {attendee.items.length > 0 && (
                         <div>
-                            <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">Items to Hand Out</p>
+                            <p className="text-xs font-semibold uppercase tracking-wider text-theme-text-muted mb-2">Items to Hand Out</p>
                             <div className="flex flex-wrap gap-2">
                                 {attendee.items.map((item, idx) => (
                                     <span
                                         key={idx}
-                                        className="text-sm text-yellow-400 bg-yellow-500/20 px-3 py-1.5 rounded-lg
-                                                   border border-yellow-500/30 font-medium"
+                                        className="text-sm text-[var(--theme-badge-items-text)] bg-[var(--theme-badge-items-bg)] px-3 py-1.5 rounded-lg
+                                                   border border-[var(--theme-badge-items-text)]/30 font-medium"
                                     >
                                         📂 {item}
                                     </span>
@@ -185,13 +187,13 @@ function ConfirmationModal({
                     {/* Novelties */}
                     {noveltiesArray.length > 0 && (
                         <div>
-                            <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">Additional Novelties</p>
+                            <p className="text-xs font-semibold uppercase tracking-wider text-theme-text-muted mb-2">Additional Novelties</p>
                             <div className="flex flex-wrap gap-2">
                                 {noveltiesArray.map((item, idx) => (
                                     <span
                                         key={idx}
-                                        className="text-sm text-pink-400 bg-pink-500/20 px-3 py-1.5 rounded-lg
-                                                   border border-pink-500/30 font-medium"
+                                        className="text-sm text-[var(--theme-badge-novelties-text)] bg-[var(--theme-badge-novelties-bg)] px-3 py-1.5 rounded-lg
+                                                   border border-[var(--theme-badge-novelties-text)]/30 font-medium"
                                     >
                                         🎁 {item}
                                     </span>
@@ -202,18 +204,18 @@ function ConfirmationModal({
 
                     {/* Memo */}
                     {attendee.memo && (
-                        <div className="bg-amber-500/20 border border-amber-500/40 rounded-lg p-3">
-                            <p className="text-xs text-amber-300 mb-1 font-semibold">⚠️ Important Note</p>
-                            <p className="text-sm text-white">{attendee.memo}</p>
+                        <div className="bg-[var(--theme-warning-bg)] border border-[var(--theme-warning-border)] rounded-lg p-3">
+                            <p className="text-xs text-[var(--theme-warning-text)] mb-1 font-semibold">⚠️ Important Note</p>
+                            <p className="text-sm text-theme-text-heading">{attendee.memo}</p>
                         </div>
                     )}
 
                     {/* Additional Info Grid */}
                     <div className="grid grid-cols-2 gap-3">
                         {attendee.bodySize && (
-                            <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
-                                <p className="text-xs text-blue-400 mb-1">Size</p>
-                                <p className="text-lg font-bold text-blue-300">
+                            <div className="bg-[var(--theme-badge-size-bg)] border border-[var(--theme-badge-size-text)]/30 rounded-lg p-3">
+                                <p className="text-xs text-[var(--theme-badge-size-text)] mb-1">Size</p>
+                                <p className="text-lg font-bold text-[var(--theme-badge-size-text)]">
                                     👕 {attendee.bodySize}
                                 </p>
                             </div>
@@ -223,16 +225,16 @@ function ConfirmationModal({
                             <div
                                 className={`rounded-lg p-3 border ${
                                     attendee.attendsReception
-                                        ? 'bg-green-500/10 border-green-500/30'
-                                        : 'bg-gray-500/10 border-gray-500/30'
+                                        ? 'bg-[var(--theme-badge-reception-bg)] border-[var(--theme-badge-reception-text)]/30'
+                                        : 'bg-theme-bg-elevated border-theme-border-default'
                                 }`}
                             >
-                                <p className="text-xs text-gray-400 mb-1">Reception</p>
+                                <p className="text-xs text-theme-text-muted mb-1">Reception</p>
                                 <p
                                     className={`text-sm font-bold ${
                                         attendee.attendsReception
-                                            ? 'text-green-300'
-                                            : 'text-gray-300'
+                                            ? 'text-[var(--theme-badge-reception-text)]'
+                                            : 'text-theme-text-secondary'
                                     }`}
                                 >
                                     🍽️{' '}
@@ -244,11 +246,11 @@ function ConfirmationModal({
                 </div>
 
                 {/* Footer Buttons */}
-                <div className="flex gap-4 p-6 border-t border-gray-700">
+                <div className="flex gap-4 p-6 border-t border-theme-border-default">
                     <button
                         onClick={onCancel}
                         disabled={isLoading}
-                        className={`flex-1 py-3 px-6 bg-gray-700 hover:bg-gray-600 text-white text-base
+                        className={`flex-1 py-3 px-6 bg-theme-bg-elevated hover:brightness-95 text-theme-text-heading text-base
                                    rounded-xl font-medium transition active:scale-95 disabled:opacity-50 ${FOCUS_RING}`}
                     >
                         Cancel
@@ -317,7 +319,7 @@ function CancelConfirmModal({
 
     return (
         <div
-            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-[var(--theme-bg-overlay)] backdrop-blur-sm z-50 flex items-center justify-center p-4"
             onClick={onCancel}
         >
             <div
@@ -325,23 +327,23 @@ function CancelConfirmModal({
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="cancel-modal-title"
-                className="bg-gray-800 border border-gray-700 rounded-2xl max-w-sm w-full shadow-2xl"
+                className="bg-theme-bg-card border border-theme-border-default rounded-2xl max-w-sm w-full shadow-2xl"
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className="p-6 text-center space-y-4">
-                    <div className="w-14 h-14 bg-red-500/20 rounded-full flex items-center justify-center mx-auto">
-                        <X size={28} className="text-red-400" />
+                    <div className="w-14 h-14 bg-[var(--theme-danger-bg)] rounded-full flex items-center justify-center mx-auto">
+                        <X size={28} className="text-[var(--theme-danger-text)]" />
                     </div>
-                    <h2 id="cancel-modal-title" className="text-xl font-bold text-white">Cancel Check-In</h2>
-                    <p className="text-gray-300">
-                        Cancel check-in for <span className="font-bold text-white">{attendeeName}</span>?
+                    <h2 id="cancel-modal-title" className="text-xl font-bold text-theme-text-heading">Cancel Check-In</h2>
+                    <p className="text-theme-text-secondary">
+                        Cancel check-in for <span className="font-bold text-theme-text-heading">{attendeeName}</span>?
                     </p>
                 </div>
-                <div className="flex gap-4 p-6 border-t border-gray-700">
+                <div className="flex gap-4 p-6 border-t border-theme-border-default">
                     <button
                         onClick={onCancel}
                         disabled={isLoading}
-                        className={`flex-1 py-3 px-4 bg-gray-700 hover:bg-gray-600 text-white
+                        className={`flex-1 py-3 px-4 bg-theme-bg-elevated hover:brightness-95 text-theme-text-heading
                                    rounded-xl font-medium transition active:scale-95 disabled:opacity-50 ${FOCUS_RING}`}
                     >
                         Keep
@@ -349,10 +351,9 @@ function CancelConfirmModal({
                     <button
                         onClick={onConfirm}
                         disabled={isLoading}
-                        className="flex-1 py-3 px-4 bg-red-600 hover:bg-red-500 text-white
+                        className={`flex-1 py-3 px-4 bg-red-600 hover:bg-red-500 text-white
                                    rounded-xl font-bold transition active:scale-95 disabled:opacity-50
-                                   flex items-center justify-center gap-2
-                                   focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2 focus:ring-offset-gray-900"
+                                   flex items-center justify-center gap-2 ${FOCUS_RING}`}
                     >
                         {isLoading ? 'Canceling...' : 'Cancel Check-In'}
                     </button>
@@ -527,45 +528,51 @@ export default function Dashboard() {
     const isDebouncing = query !== debouncedQuery;
 
     return (
-        <div className="min-h-screen bg-gray-900 text-gray-100 p-4 pb-20">
+        <div className="min-h-screen bg-theme-bg-base text-theme-text-primary p-4 pb-20">
             {/* Header */}
-            <div className="flex justify-between items-center mb-6 sticky top-0 bg-gray-900/95 backdrop-blur z-10 py-5 border-b border-gray-800 shadow-lg shadow-gray-900/50">
+            <div className="flex justify-between items-center mb-6 sticky top-0 bg-[var(--theme-bg-header)] backdrop-blur z-10 py-5 border-b border-theme-border-subtle shadow-[var(--theme-shadow-header)]">
                 <div>
-                    <h1 className="text-2xl font-extrabold text-white">VOXNTRY Dashboard</h1>
+                    <h1 className="text-2xl font-extrabold text-theme-text-heading">VOXNTRY Dashboard</h1>
                     <div role="status" aria-live="polite">
-                        <p className="text-sm text-gray-300">
-                            <span className="text-emerald-400 font-bold text-base">{stats.checkedIn}</span>
-                            <span className="text-gray-400"> / </span>
+                        <p className="text-sm text-theme-text-secondary">
+                            <span className="text-theme-accent-text font-bold text-base">{stats.checkedIn}</span>
+                            <span className="text-theme-text-muted"> / </span>
                             <span className="font-medium">{stats.total}</span>
-                            <span className="text-gray-400 ml-1">checked in</span>
+                            <span className="text-theme-text-muted ml-1">checked in</span>
                         </p>
                         {stats.total > 0 && (
-                            <div className="mt-1 w-32 h-1.5 bg-gray-700 rounded-full overflow-hidden">
+                            <div className="mt-1 w-32 h-1.5 bg-[var(--theme-accent-track)] rounded-full overflow-hidden">
                                 <div
-                                    className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                                    className="h-full bg-[var(--theme-accent-progress)] rounded-full transition-all duration-500"
                                     style={{ width: `${(stats.checkedIn / stats.total) * 100}%` }}
                                 />
                             </div>
                         )}
                     </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 items-center">
                     <button
                         onClick={fetchAttendees}
-                        className={`p-2.5 min-h-[44px] min-w-[44px] bg-gray-800 rounded-xl hover:bg-gray-700 transition flex items-center justify-center ${FOCUS_RING}`}
+                        className={`p-2.5 min-h-[44px] min-w-[44px] bg-theme-bg-card rounded-xl hover:bg-theme-bg-elevated transition flex items-center justify-center ${FOCUS_RING}`}
                         aria-label="Refresh attendee list"
                         title="Refresh"
                     >
                         <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
                     </button>
                     <button
-                        onClick={() => router.push('/login')}
-                        className={`p-2.5 min-h-[44px] min-w-[44px] bg-gray-800 rounded-xl hover:bg-red-900/50 transition text-red-400 flex items-center justify-center ${FOCUS_RING}`}
+                        onClick={() => {
+                            clearStoredTheme();
+                            router.push('/login');
+                        }}
+                        className={`p-2.5 min-h-[44px] min-w-[44px] bg-theme-bg-card rounded-xl hover:bg-[var(--theme-danger-hover)] transition text-[var(--theme-danger-text)] flex items-center justify-center ${FOCUS_RING}`}
                         aria-label="Logout"
                         title="Logout"
                     >
                         <LogOut size={20} />
                     </button>
+                    {/* Divider */}
+                    <div className="w-px h-8 bg-theme-border-default" />
+                    <ThemeSwitcher />
                 </div>
             </div>
 
@@ -573,15 +580,15 @@ export default function Dashboard() {
             <div className="mb-6 space-y-4">
                 <div className="relative">
                     {isDebouncing ? (
-                        <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-400 animate-spin" size={20} />
+                        <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 text-theme-accent-text animate-spin" size={20} />
                     ) : (
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-theme-text-muted" size={20} />
                     )}
                     <input
                         type="text"
                         placeholder="名前・かな・所属で検索..."
-                        className={`w-full bg-gray-800 border border-gray-700 rounded-xl py-3 pl-10 pr-12 text-lg text-white
-                                   transition ${FOCUS_RING} focus:border-emerald-500`}
+                        className={`w-full bg-theme-bg-card border border-theme-border-input rounded-xl py-3 pl-10 pr-12 text-lg text-theme-text-heading
+                                   transition ${FOCUS_RING} focus:border-theme-accent-solid`}
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                         aria-label="Search attendees by name, kana, or affiliation"
@@ -594,8 +601,8 @@ export default function Dashboard() {
                                 setDebouncedQuery('');
                             }}
                             className={`absolute right-2 top-1/2 -translate-y-1/2 p-2.5 min-h-[44px] min-w-[44px]
-                                       flex items-center justify-center text-gray-400 hover:text-white transition
-                                       rounded-lg hover:bg-gray-700 ${FOCUS_RING}`}
+                                       flex items-center justify-center text-theme-text-muted hover:text-theme-text-heading transition
+                                       rounded-lg hover:bg-theme-bg-elevated ${FOCUS_RING}`}
                             aria-label="検索をクリア"
                         >
                             <X size={20} />
@@ -603,10 +610,10 @@ export default function Dashboard() {
                     )}
                 </div>
                 {debouncedQuery && (
-                    <div className="text-sm text-gray-400" aria-live="polite">
-                        検索結果: <span className="text-emerald-400 font-semibold">{filteredAttendees.length}</span>件
+                    <div className="text-sm text-theme-text-muted" aria-live="polite">
+                        検索結果: <span className="text-theme-accent-text font-semibold">{filteredAttendees.length}</span>件
                         {filteredAttendees.length !== attendees.length && (
-                            <span className="text-gray-400"> / 全{attendees.length}件</span>
+                            <span className="text-theme-text-muted"> / 全{attendees.length}件</span>
                         )}
                     </div>
                 )}
@@ -617,29 +624,29 @@ export default function Dashboard() {
                 {loading ? (
                     <div className="space-y-2">
                         {[1, 2, 3, 4, 5].map((i) => (
-                            <div key={i} className="animate-pulse bg-gray-800 rounded-lg p-4 border border-gray-700 flex justify-between items-center">
+                            <div key={i} className="animate-pulse bg-theme-bg-card rounded-lg p-4 border border-theme-border-default flex justify-between items-center">
                                 <div className="flex-1">
-                                    <div className="h-3 bg-gray-700 rounded w-20 mb-2" />
-                                    <div className="h-5 bg-gray-700 rounded w-40 mb-1" />
-                                    <div className="h-3 bg-gray-700 rounded w-28" />
+                                    <div className="h-3 bg-theme-bg-elevated rounded w-20 mb-2" />
+                                    <div className="h-5 bg-theme-bg-elevated rounded w-40 mb-1" />
+                                    <div className="h-3 bg-theme-bg-elevated rounded w-28" />
                                 </div>
-                                <div className="h-10 w-20 bg-gray-700 rounded-xl" />
+                                <div className="h-10 w-20 bg-theme-bg-elevated rounded-xl" />
                             </div>
                         ))}
                     </div>
                 ) : filteredAttendees.length === 0 ? (
                     <div className="text-center py-16 space-y-3">
-                        <Search size={48} className="text-gray-600 mx-auto" />
-                        <p className="text-lg text-gray-400">No attendees found.</p>
+                        <Search size={48} className="text-theme-text-muted mx-auto" />
+                        <p className="text-lg text-theme-text-muted">No attendees found.</p>
                         {debouncedQuery && (
                             <>
-                                <p className="text-sm text-gray-400">Try a different search term</p>
+                                <p className="text-sm text-theme-text-muted">Try a different search term</p>
                                 <button
                                     onClick={() => {
                                         setQuery('');
                                         setDebouncedQuery('');
                                     }}
-                                    className={`mt-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300
+                                    className={`mt-2 px-4 py-2 bg-theme-bg-card hover:bg-theme-bg-elevated text-theme-text-secondary
                                                rounded-lg transition text-sm ${FOCUS_RING}`}
                                 >
                                     Clear search
@@ -656,11 +663,11 @@ export default function Dashboard() {
                                 key={attendee.id}
                                 className={`p-4 rounded-lg border border-l-4 transition-all duration-300
                                     ${attendee.checkedIn
-                                        ? 'bg-emerald-950/30 border-emerald-700/40 border-l-emerald-500'
-                                        : 'bg-gray-800 border-gray-700 border-l-transparent'
+                                        ? 'bg-[var(--theme-accent-surface)] border-[var(--theme-accent-border)] border-l-[var(--theme-accent-left)]'
+                                        : 'bg-theme-bg-card border-theme-border-default border-l-transparent'
                                     }
                                     ${recentlyCheckedIn === attendee.id
-                                        ? 'ring-2 ring-emerald-400 scale-[1.01]'
+                                        ? 'ring-2 ring-[var(--theme-accent-ring)] scale-[1.01]'
                                         : ''
                                     }
                                     flex justify-between items-center`}
@@ -678,18 +685,18 @@ export default function Dashboard() {
                                     )}
 
                                     {/* Name (PRIMARY - above affiliation for quick scanning) */}
-                                    <h3 className="text-lg font-bold text-white leading-tight line-clamp-2">
+                                    <h3 className="text-lg font-bold text-theme-text-heading leading-tight line-clamp-2">
                                         {attendee.name}
                                     </h3>
 
                                     {/* Affiliation (SECONDARY) */}
-                                    <p className="text-xs text-gray-300 mb-1 truncate">
+                                    <p className="text-xs text-theme-text-secondary mb-1 truncate">
                                         {attendee.affiliation}
                                     </p>
 
                                     {/* Name Kana */}
                                     {attendee.nameKana && (
-                                        <p className="text-xs text-gray-400 mb-2">
+                                        <p className="text-xs text-theme-text-muted mb-2">
                                             {attendee.nameKana}
                                         </p>
                                     )}
@@ -700,7 +707,7 @@ export default function Dashboard() {
                                             {attendee.items.map((item, idx) => (
                                                 <span
                                                     key={idx}
-                                                    className="text-xs text-yellow-500 bg-yellow-500/10 px-2 py-0.5 rounded"
+                                                    className="text-xs text-[var(--theme-badge-items-text)] bg-[var(--theme-badge-items-bg)] px-2 py-0.5 rounded"
                                                 >
                                                     📂 {item}
                                                 </span>
@@ -714,7 +721,7 @@ export default function Dashboard() {
                                             {noveltiesArray.map((item, idx) => (
                                                 <span
                                                     key={idx}
-                                                    className="text-xs text-pink-500 bg-pink-500/10 px-2 py-0.5 rounded"
+                                                    className="text-xs text-[var(--theme-badge-novelties-text)] bg-[var(--theme-badge-novelties-bg)] px-2 py-0.5 rounded"
                                                 >
                                                     🎁 {item}
                                                 </span>
@@ -725,7 +732,7 @@ export default function Dashboard() {
                                     {/* Attribute information */}
                                     <div className="flex gap-3 mt-2">
                                         {attendee.bodySize && (
-                                            <div className="flex items-center gap-1 text-xs text-blue-400 bg-blue-400/10 px-2 py-0.5 rounded">
+                                            <div className="flex items-center gap-1 text-xs text-[var(--theme-badge-size-text)] bg-[var(--theme-badge-size-bg)] px-2 py-0.5 rounded">
                                                 <span>👕</span>
                                                 <span>{attendee.bodySize}</span>
                                             </div>
@@ -734,8 +741,8 @@ export default function Dashboard() {
                                         {attendee.attendsReception !== undefined && (
                                             <div className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded ${
                                                 attendee.attendsReception
-                                                    ? 'text-green-400 bg-green-400/10'
-                                                    : 'text-gray-400 bg-gray-400/10'
+                                                    ? 'text-[var(--theme-badge-reception-text)] bg-[var(--theme-badge-reception-bg)]'
+                                                    : 'text-theme-text-muted bg-theme-bg-elevated'
                                             }`}>
                                                 <span>🍽️</span>
                                                 <span>
@@ -752,8 +759,8 @@ export default function Dashboard() {
                                             onClick={() => handleCancelCheckIn(attendee.id, attendee.name)}
                                             disabled={cancelingCheckIn === attendee.id}
                                             className={`flex flex-col items-center gap-1 px-4 py-2.5 rounded-xl transition min-h-[48px]
-                                                       bg-emerald-600/20 border border-emerald-600/50 text-emerald-400
-                                                       hover:bg-red-600/20 hover:border-red-600/50 hover:text-red-400
+                                                       bg-[var(--theme-accent-surface)] border border-[var(--theme-accent-border)] text-theme-accent-text
+                                                       hover:bg-[var(--theme-danger-bg)] hover:border-[var(--theme-danger-text)]/50 hover:text-[var(--theme-danger-text)]
                                                        active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${FOCUS_RING}`}
                                             aria-label={`Cancel check-in for ${attendee.name}`}
                                         >
@@ -761,7 +768,7 @@ export default function Dashboard() {
                                             <span className="text-xs font-medium">
                                                 {cancelingCheckIn === attendee.id ? 'Canceling...' : 'Checked In'}
                                             </span>
-                                            <span className="text-[10px] text-gray-400 mt-0.5">tap to cancel</span>
+                                            <span className="text-[10px] text-theme-text-muted mt-0.5">tap to cancel</span>
                                         </button>
                                     ) : (
                                         <button

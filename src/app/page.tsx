@@ -94,48 +94,48 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
-            <div className="bg-gray-800 p-8 rounded-lg shadow-xl max-w-md w-full border border-gray-700">
-                <h1 className="text-2xl font-bold text-white mb-6 text-center">
+        <div className="min-h-screen bg-theme-bg-base flex items-center justify-center p-4">
+            <div className="bg-theme-bg-card p-8 rounded-lg shadow-[var(--theme-shadow-card)] max-w-md w-full border border-theme-border-default">
+                <h1 className="text-2xl font-bold text-theme-text-heading mb-6 text-center">
                     VOXNTRY Login
                 </h1>
 
                 {error && (
-                    <div className="bg-red-500/10 border border-red-500 text-red-500 p-3 rounded mb-4 text-sm">
+                    <div className="bg-[var(--theme-danger-bg)] border border-[var(--theme-danger-text)]/50 text-[var(--theme-danger-text)] p-3 rounded mb-4 text-sm">
                         {error}
                     </div>
                 )}
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                        <label className="block text-gray-400 text-sm mb-1">Conference ID</label>
+                        <label className="block text-theme-text-muted text-sm mb-1">Conference ID</label>
                         <input
                             type="text"
                             required
-                            className="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white focus:outline-none focus:border-blue-500"
+                            className="w-full bg-theme-bg-input border border-theme-border-input rounded p-2 text-theme-text-heading focus:outline-none focus:ring-2 focus:ring-[var(--theme-accent-ring)] focus:ring-offset-2 focus:ring-offset-[var(--theme-bg-base)] focus:border-theme-accent-solid"
                             value={formData.conferenceId}
                             onChange={(e) => setFormData({ ...formData, conferenceId: e.target.value })}
                         />
                     </div>
 
                     <div>
-                        <label className="block text-gray-400 text-sm mb-1">Password</label>
+                        <label className="block text-theme-text-muted text-sm mb-1">Password</label>
                         <input
                             type="password"
                             required
-                            className="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white focus:outline-none focus:border-blue-500"
+                            className="w-full bg-theme-bg-input border border-theme-border-input rounded p-2 text-theme-text-heading focus:outline-none focus:ring-2 focus:ring-[var(--theme-accent-ring)] focus:ring-offset-2 focus:ring-offset-[var(--theme-bg-base)] focus:border-theme-accent-solid"
                             value={formData.password}
                             onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                         />
                     </div>
 
                     <div>
-                        <label className="block text-gray-400 text-sm mb-1">Staff Name</label>
+                        <label className="block text-theme-text-muted text-sm mb-1">Staff Name</label>
                         <input
                             type="text"
                             required
                             placeholder="Your Name"
-                            className="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white focus:outline-none focus:border-blue-500"
+                            className="w-full bg-theme-bg-input border border-theme-border-input rounded p-2 text-theme-text-heading focus:outline-none focus:ring-2 focus:ring-[var(--theme-accent-ring)] focus:ring-offset-2 focus:ring-offset-[var(--theme-bg-base)] focus:border-theme-accent-solid"
                             value={formData.staffName}
                             onChange={(e) => setFormData({ ...formData, staffName: e.target.value })}
                         />
