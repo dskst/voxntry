@@ -1,12 +1,20 @@
 'use client';
 
 import { Sun, Moon } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { useTheme } from './ThemeProvider';
 
 const FOCUS_RING = 'focus:outline-none focus:ring-2 focus:ring-[var(--theme-accent-ring)] focus:ring-offset-2 focus:ring-offset-[var(--theme-bg-base)]';
 
 export function ThemeSwitcher() {
   const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  // クライアント側でマウントされるまで待つ（SSR/Hydration mismatch回避）
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const isDark = theme === 'dark';
 
   return (
@@ -18,7 +26,8 @@ export function ThemeSwitcher() {
       aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
       title={isDark ? 'Light mode' : 'Dark mode'}
     >
-      {isDark ? <Moon size={20} /> : <Sun size={20} />}
+      {/* マウント前はデフォルトアイコンを表示してHydration mismatchを防ぐ */}
+      {!mounted ? <Moon size={20} /> : (isDark ? <Moon size={20} /> : <Sun size={20} />)}
     </button>
   );
 }
