@@ -1,3 +1,5 @@
+export type CheckInStatusFilter = 'all' | 'checked-in' | 'not-checked-in';
+
 export interface Attendee {
   id: string;
   affiliation: string; // Changed from 'company' - more inclusive term for organizations, universities, freelancers, etc.

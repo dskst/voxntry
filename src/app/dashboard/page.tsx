@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { Attendee } from '@/types';
+import { Attendee, CheckInStatusFilter } from '@/types';
 import { Search, UserCheck, RefreshCw, LogOut, X, CheckCircle2, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { filterAttendees, SearchableField } from '@/utils/search';
@@ -15,6 +15,22 @@ const SEARCH_FIELDS: SearchableField[] = ['name', 'nameKana', 'affiliation', 'af
 // Focus ring utility for keyboard accessibility (theme-aware)
 const FOCUS_RING = 'focus:outline-none focus:ring-2 focus:ring-[var(--theme-accent-ring)] focus:ring-offset-2 focus:ring-offset-[var(--theme-bg-base)]';
 
+// Sort-order hint for known attributes (case-insensitive matching)
+const ATTRIBUTE_DISPLAY_ORDER: readonly string[] = [
+    'speaker', 'sponsor', 'staff', 'press', 'vip', 'general'
+];
+
+// Sort chips: known attributes first (in defined order), then unknown at end
+function sortAttributes(attrs: string[]): string[] {
+    return [...attrs].sort((a, b) => {
+        const idxA = ATTRIBUTE_DISPLAY_ORDER.indexOf(a.toLowerCase());
+        const idxB = ATTRIBUTE_DISPLAY_ORDER.indexOf(b.toLowerCase());
+        const orderA = idxA === -1 ? ATTRIBUTE_DISPLAY_ORDER.length : idxA;
+        const orderB = idxB === -1 ? ATTRIBUTE_DISPLAY_ORDER.length : idxB;
+        return orderA - orderB;
+    });
+}
+
 // Helper to parse comma-separated string into array (for novelties)
 function parseCommaSeparated(value: string | undefined): string[] {
     if (!value || value.trim() === '') return [];
@@ -22,17 +38,22 @@ function parseCommaSeparated(value: string | undefined): string[] {
     return normalized.split(',').map(item => item.trim()).filter(item => item !== '');
 }
 
-// Get attribute badge color class
-function getAttributeColorClass(attribute: string | undefined): string {
-    if (!attribute) return 'bg-theme-bg-muted text-theme-text-heading';
-    const attr = attribute.toLowerCase();
-    if (attr.includes('speaker') || attr.includes('登壇')) return 'bg-purple-600 text-white';
-    if (attr.includes('sponsor') || attr.includes('スポンサー')) return 'bg-yellow-600 text-white';
-    if (attr.includes('staff') || attr.includes('スタッフ')) return 'bg-blue-600 text-white';
-    if (attr.includes('press') || attr.includes('報道')) return 'bg-pink-600 text-white';
-    if (attr.includes('vip')) return 'bg-red-600 text-white';
+// Get attribute badge color class (unified gray color for all attributes)
+function getAttributeColorClass(_attribute: string | undefined): string {
     return 'bg-theme-bg-muted text-theme-text-heading';
 }
+
+// Get chip color classes for filter chips (unified gray color for all attributes)
+function getAttributeChipColorClass(_attribute: string): string {
+    return 'bg-theme-bg-muted text-theme-text-heading ring-2 ring-[var(--theme-bg-muted)]/50';
+}
+
+// Status filter labels
+const STATUS_FILTER_OPTIONS: { value: CheckInStatusFilter; label: string }[] = [
+    { value: 'all', label: 'All' },
+    { value: 'checked-in', label: 'Checked In' },
+    { value: 'not-checked-in', label: 'Not Checked In' },
+];
 
 // Toast notification type
 interface ToastData {
@@ -375,6 +396,30 @@ export default function Dashboard() {
     const [cancelModalData, setCancelModalData] = useState<{ id: string; name: string } | null>(null);
     const [toasts, setToasts] = useState<ToastData[]>([]);
     const [recentlyCheckedIn, setRecentlyCheckedIn] = useState<string | null>(null);
+    const [statusFilter, setStatusFilter] = useState<CheckInStatusFilter>('all');
+    const [selectedAttributes, setSelectedAttributes] = useState<Set<string>>(new Set());
+    const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
+    const [isAttributeDropdownOpen, setIsAttributeDropdownOpen] = useState(false);
+
+    // Filter helpers
+    const toggleAttribute = useCallback((attr: string) => {
+        setSelectedAttributes(prev => {
+            const next = new Set(prev);
+            if (next.has(attr)) {
+                next.delete(attr);
+            } else {
+                next.add(attr);
+            }
+            return next;
+        });
+    }, []);
+
+    const clearFilters = useCallback(() => {
+        setStatusFilter('all');
+        setSelectedAttributes(new Set());
+    }, []);
+
+    const hasActiveFilters = statusFilter !== 'all' || selectedAttributes.size > 0;
 
     // Toast helpers
     const addToast = useCallback((message: string, type: 'success' | 'error') => {
@@ -421,17 +466,62 @@ export default function Dashboard() {
         };
     }, [query]);
 
+    // Extract unique attributes from attendee data for filter chips
+    const uniqueAttributes = useMemo(() => {
+        const attrs = new Set<string>();
+        for (const attendee of attendees) {
+            if (attendee.attributes) {
+                for (const attr of attendee.attributes) {
+                    attrs.add(attr);
+                }
+            }
+        }
+        return attrs;
+    }, [attendees]);
+
     const filteredAttendees = useMemo(() => {
         try {
-            return filterAttendees(attendees, debouncedQuery, {
+            // Step 1: Text search (existing)
+            let result = filterAttendees(attendees, debouncedQuery, {
                 fields: SEARCH_FIELDS,
                 normalize: true,
             });
+
+            // Step 2: Check-in status filter
+            if (statusFilter !== 'all') {
+                result = result.filter(a =>
+                    statusFilter === 'checked-in' ? a.checkedIn : !a.checkedIn
+                );
+            }
+
+            // Step 3: Attribute filter — AND condition (case-insensitive with "General" handling)
+            if (selectedAttributes.size > 0) {
+                const normalizedFilter = new Set(
+                    [...selectedAttributes].map(a => a.toLowerCase())
+                );
+                const includesGeneral = normalizedFilter.has('general');
+
+                result = result.filter(a => {
+                    const attrs = a.attributes ?? [];
+                    const normalizedAttrs = new Set(attrs.map(attr => attr.toLowerCase()));
+
+                    // Attendees with no attributes are implicitly "General"
+                    if (attrs.length === 0) {
+                        // Only match if "general" is the only selected filter
+                        return includesGeneral && normalizedFilter.size === 1;
+                    }
+
+                    // ALL selected attributes must be present in attendee's attributes (AND condition)
+                    return [...normalizedFilter].every(filterAttr => normalizedAttrs.has(filterAttr));
+                });
+            }
+
+            return result;
         } catch (error) {
             console.error('Search filtering error:', error);
             return attendees;
         }
-    }, [attendees, debouncedQuery]);
+    }, [attendees, debouncedQuery, statusFilter, selectedAttributes]);
 
     // Memoize novelties computation per attendee
     const noveltiesMap = useMemo(() => {
@@ -609,11 +699,208 @@ export default function Dashboard() {
                         </button>
                     )}
                 </div>
-                {debouncedQuery && (
-                    <div className="text-sm text-theme-text-muted" aria-live="polite">
-                        検索結果: <span className="text-theme-accent-text font-semibold">{filteredAttendees.length}</span>件
-                        {filteredAttendees.length !== attendees.length && (
+
+                {/* Filter Controls */}
+                <div className="space-y-3">
+                    {/* Filter dropdowns - side by side */}
+                    <div className="flex gap-3">
+                        {/* Status filter dropdown */}
+                        <div className="relative flex-1">
+                            {/* Status button */}
+                            <button
+                                onClick={() => setIsStatusDropdownOpen(!isStatusDropdownOpen)}
+                                className={`w-full inline-flex items-center justify-between gap-2 px-4 py-2.5 rounded-xl text-sm font-medium min-h-[44px] cursor-pointer transition select-none border ${FOCUS_RING}
+                                    ${statusFilter !== 'all'
+                                        ? 'bg-emerald-700 text-white border-emerald-700'
+                                        : 'bg-theme-bg-card border-theme-border-default text-theme-text-secondary hover:bg-theme-bg-elevated hover:border-theme-border-input'
+                                    }`}
+                                aria-expanded={isStatusDropdownOpen}
+                                aria-haspopup="true"
+                            >
+                                <span>
+                                    Status: {STATUS_FILTER_OPTIONS.find(opt => opt.value === statusFilter)?.label || 'All'}
+                                </span>
+                                <svg
+                                    className={`w-4 h-4 transition-transform flex-shrink-0 ${isStatusDropdownOpen ? 'rotate-180' : ''}`}
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+
+                            {/* Status dropdown menu */}
+                            {isStatusDropdownOpen && (
+                                <>
+                                    {/* Backdrop */}
+                                    <div
+                                        className="fixed inset-0 z-10"
+                                        onClick={() => setIsStatusDropdownOpen(false)}
+                                    />
+
+                                    {/* Dropdown content */}
+                                    <div className="absolute left-0 right-0 mt-2 bg-theme-bg-card border border-theme-border-default rounded-xl shadow-xl z-20">
+                                        <div className="p-2">
+                                            {STATUS_FILTER_OPTIONS.map(({ value, label }) => {
+                                                const isSelected = statusFilter === value;
+                                                return (
+                                                    <button
+                                                        key={value}
+                                                        onClick={() => {
+                                                            setStatusFilter(value);
+                                                            setIsStatusDropdownOpen(false);
+                                                        }}
+                                                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium min-h-[44px] cursor-pointer transition text-left ${FOCUS_RING}
+                                                            ${isSelected
+                                                                ? 'bg-emerald-700/10 text-emerald-700'
+                                                                : 'text-theme-text-secondary hover:bg-theme-bg-elevated'
+                                                            }`}
+                                                    >
+                                                        {/* Radio indicator */}
+                                                        <div className={`flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition
+                                                            ${isSelected
+                                                                ? 'border-emerald-700'
+                                                                : 'border-theme-border-default'
+                                                            }`}
+                                                        >
+                                                            {isSelected && (
+                                                                <div className="w-2.5 h-2.5 rounded-full bg-emerald-700" />
+                                                            )}
+                                                        </div>
+
+                                                        {/* Label */}
+                                                        <span className="flex-1">{label}</span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+
+                        {/* Attribute filter dropdown */}
+                        {uniqueAttributes.size > 0 && (
+                            <div className="relative flex-1">
+                                {/* Attributes button */}
+                                <button
+                                    onClick={() => setIsAttributeDropdownOpen(!isAttributeDropdownOpen)}
+                                    className={`w-full inline-flex items-center justify-between gap-2 px-4 py-2.5 rounded-xl text-sm font-medium min-h-[44px] cursor-pointer transition select-none border ${FOCUS_RING}
+                                        ${selectedAttributes.size > 0
+                                            ? 'bg-emerald-700 text-white border-emerald-700'
+                                            : 'bg-theme-bg-card border-theme-border-default text-theme-text-secondary hover:bg-theme-bg-elevated hover:border-theme-border-input'
+                                        }`}
+                                    aria-expanded={isAttributeDropdownOpen}
+                                    aria-haspopup="true"
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <span>Attributes</span>
+                                        {selectedAttributes.size > 0 && (
+                                            <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 bg-white/20 rounded-full text-xs font-bold">
+                                                {selectedAttributes.size}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <svg
+                                        className={`w-4 h-4 transition-transform flex-shrink-0 ${isAttributeDropdownOpen ? 'rotate-180' : ''}`}
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </button>
+
+                                {/* Attribute dropdown menu */}
+                                {isAttributeDropdownOpen && (
+                                    <>
+                                        {/* Backdrop */}
+                                        <div
+                                            className="fixed inset-0 z-10"
+                                            onClick={() => setIsAttributeDropdownOpen(false)}
+                                        />
+
+                                        {/* Dropdown content */}
+                                        <div className="absolute left-0 right-0 mt-2 bg-theme-bg-card border border-theme-border-default rounded-xl shadow-xl z-20 max-h-[400px] overflow-y-auto">
+                                            <div className="p-2">
+                                                <div className="px-3 py-2 text-xs font-semibold text-theme-text-muted uppercase tracking-wider">
+                                                    Select Attributes (AND condition)
+                                                </div>
+                                                {sortAttributes([...uniqueAttributes]).map((attr) => {
+                                                    const isSelected = selectedAttributes.has(attr);
+                                                    return (
+                                                        <button
+                                                            key={attr}
+                                                            onClick={() => toggleAttribute(attr)}
+                                                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium min-h-[44px] cursor-pointer transition text-left ${FOCUS_RING}
+                                                                ${isSelected
+                                                                    ? 'bg-emerald-700/10 text-emerald-700'
+                                                                    : 'text-theme-text-secondary hover:bg-theme-bg-elevated'
+                                                                }`}
+                                                        >
+                                                            {/* Checkbox */}
+                                                            <div className={`flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition
+                                                                ${isSelected
+                                                                    ? 'bg-emerald-700 border-emerald-700'
+                                                                    : 'border-theme-border-default bg-theme-bg-base'
+                                                                }`}
+                                                            >
+                                                                {isSelected && (
+                                                                    <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                                                    </svg>
+                                                                )}
+                                                            </div>
+
+                                                            {/* Attribute label with color indicator */}
+                                                            <span className="flex-1">{attr}</span>
+                                                            <span className={`flex-shrink-0 w-2 h-2 rounded-full ${getAttributeColorClass(attr)}`} />
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Selected attribute filters badges */}
+                    {selectedAttributes.size > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                            {sortAttributes([...selectedAttributes]).map((attr) => (
+                                <button
+                                    key={attr}
+                                    onClick={() => toggleAttribute(attr)}
+                                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer transition ${FOCUS_RING}
+                                        ${getAttributeChipColorClass(attr)}`}
+                                    aria-label={`Remove ${attr} filter`}
+                                >
+                                    <span>{attr}</span>
+                                    <X size={14} />
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                {/* Result count + Clear filters */}
+                {filteredAttendees.length !== attendees.length && (
+                    <div className="flex items-center justify-between text-sm" aria-live="polite">
+                        <span className="text-theme-text-muted">
+                            検索結果: <span className="text-theme-accent-text font-semibold">{filteredAttendees.length}</span>件
                             <span className="text-theme-text-muted"> / 全{attendees.length}件</span>
+                        </span>
+                        {hasActiveFilters && (
+                            <button
+                                onClick={clearFilters}
+                                aria-label="Clear all filters"
+                                className={`text-theme-text-muted hover:text-theme-text-heading hover:underline min-h-[44px] py-2.5 px-2 transition text-sm ${FOCUS_RING}`}
+                            >
+                                Clear filters
+                            </button>
                         )}
                     </div>
                 )}
@@ -638,21 +925,32 @@ export default function Dashboard() {
                     <div className="text-center py-16 space-y-3">
                         <Search size={48} className="text-theme-text-muted mx-auto" />
                         <p className="text-lg text-theme-text-muted">No attendees found.</p>
-                        {debouncedQuery && (
-                            <>
-                                <p className="text-sm text-theme-text-muted">Try a different search term</p>
+                        {(debouncedQuery || hasActiveFilters) && (
+                            <p className="text-sm text-theme-text-muted">Try adjusting your filters or search term</p>
+                        )}
+                        <div className="flex items-center justify-center gap-3 mt-2">
+                            {debouncedQuery && (
                                 <button
                                     onClick={() => {
                                         setQuery('');
                                         setDebouncedQuery('');
                                     }}
-                                    className={`mt-2 px-4 py-2 bg-theme-bg-card hover:bg-theme-bg-elevated text-theme-text-secondary
+                                    className={`px-4 py-2 min-h-[44px] bg-theme-bg-card hover:bg-theme-bg-elevated text-theme-text-secondary
                                                rounded-lg transition text-sm ${FOCUS_RING}`}
                                 >
                                     Clear search
                                 </button>
-                            </>
-                        )}
+                            )}
+                            {hasActiveFilters && (
+                                <button
+                                    onClick={clearFilters}
+                                    className={`px-4 py-2 min-h-[44px] bg-theme-bg-card hover:bg-theme-bg-elevated text-theme-text-secondary
+                                               rounded-lg transition text-sm ${FOCUS_RING}`}
+                                >
+                                    Clear filters
+                                </button>
+                            )}
+                        </div>
                     </div>
                 ) : (
                     filteredAttendees.map((attendee) => {
