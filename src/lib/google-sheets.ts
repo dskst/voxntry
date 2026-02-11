@@ -6,6 +6,7 @@ import {
   formatBoolean,
   calculateSheetRange,
   buildCellRange,
+  formatTimestampForSheets,
 } from './google-sheets-parser';
 
 const DEFAULT_SHEET_CONFIG: SheetColumnMapping = {
@@ -75,7 +76,8 @@ export const checkInAttendee = async (
   spreadsheetId: string,
   rowId: string,
   staffName: string,
-  config: SheetColumnMapping = DEFAULT_SHEET_CONFIG
+  config: SheetColumnMapping = DEFAULT_SHEET_CONFIG,
+  timezone: string = 'Asia/Tokyo'
 ): Promise<boolean> => {
   const auth = getGoogleAuth();
   const sheets = google.sheets({ version: 'v4', auth });
@@ -89,7 +91,8 @@ export const checkInAttendee = async (
 
   const actualRowNumber = rowIndex + config.startRow;
 
-  const timestamp = new Date().toISOString();
+  // Format timestamp in the specified timezone for Google Sheets datetime type
+  const timestamp = formatTimestampForSheets(new Date(), timezone);
 
   // Prepare updates for checkedIn, checkedInAt, and StaffName
   const updates = [

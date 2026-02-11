@@ -7,11 +7,14 @@ import { validateRequestBody } from '@/lib/validation';
 export async function POST(request: Request) {
   // Get verified user information from middleware-injected headers
   const conferenceId = request.headers.get('x-user-conference-id');
-  const staffName = request.headers.get('x-user-staff-name');
+  const encodedStaffName = request.headers.get('x-user-staff-name');
 
-  if (!conferenceId || !staffName) {
+  if (!conferenceId || !encodedStaffName) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  // Decode Base64-encoded staffName (supports non-ASCII characters like Japanese)
+  const staffName = Buffer.from(encodedStaffName, 'base64').toString('utf-8');
 
   const conferences = getConferences();
   const conference = getConference(conferenceId, conferences);
@@ -26,7 +29,13 @@ export async function POST(request: Request) {
   const { rowId } = data;
 
   try {
-    const success = await checkInAttendee(conference.spreadsheetId, rowId, staffName, conference.sheetConfig);
+    const success = await checkInAttendee(
+      conference.spreadsheetId,
+      rowId,
+      staffName,
+      conference.sheetConfig,
+      conference.timezone // Use conference-specific timezone, defaults to 'Asia/Tokyo' in the function
+    );
     if (!success) {
       return NextResponse.json({ error: 'Attendee not found' }, { status: 404 });
     }

@@ -13,6 +13,14 @@ import {
 } from '@/__tests__/helpers/mocks/google-sheets';
 import type { ConferenceConfig } from '@/types';
 
+/**
+ * Helper function to encode staff name for HTTP headers (Base64)
+ * This matches the encoding used in middleware-helpers.ts
+ */
+function encodeStaffName(staffName: string): string {
+  return Buffer.from(staffName, 'utf-8').toString('base64');
+}
+
 // Mock Google Sheets at module level
 const mockSheetsClient = {
   spreadsheets: {
@@ -147,7 +155,7 @@ describe('POST /api/attendees/checkin', () => {
         url: 'http://localhost:3000/api/attendees/checkin',
         headers: {
           'x-user-conference-id': 'test-conf-2026',
-          'x-user-staff-name': 'Test Staff',
+          'x-user-staff-name': encodeStaffName('Test Staff'),
         },
         body: {},
       });
@@ -166,7 +174,7 @@ describe('POST /api/attendees/checkin', () => {
         headers: {
           'content-type': 'application/json',
           'x-user-conference-id': 'test-conf-2026',
-          'x-user-staff-name': 'Test Staff',
+          'x-user-staff-name': encodeStaffName('Test Staff'),
         },
         body: 'invalid-json{',
       });
@@ -184,7 +192,7 @@ describe('POST /api/attendees/checkin', () => {
         url: 'http://localhost:3000/api/attendees/checkin',
         headers: {
           'x-user-conference-id': 'test-conf-2026',
-          'x-user-staff-name': 'Test Staff',
+          'x-user-staff-name': encodeStaffName('Test Staff'),
         },
         body: { rowId: 123 }, // Should be string
       });
@@ -204,7 +212,7 @@ describe('POST /api/attendees/checkin', () => {
         url: 'http://localhost:3000/api/attendees/checkin',
         headers: {
           'x-user-conference-id': 'non-existent-conf',
-          'x-user-staff-name': 'Test Staff',
+          'x-user-staff-name': encodeStaffName('Test Staff'),
         },
         body: { rowId: '001' },
       });
@@ -224,7 +232,7 @@ describe('POST /api/attendees/checkin', () => {
         url: 'http://localhost:3000/api/attendees/checkin',
         headers: {
           'x-user-conference-id': 'test-conf-2026',
-          'x-user-staff-name': 'Test Staff',
+          'x-user-staff-name': encodeStaffName('Test Staff'),
         },
         body: { rowId: '001' },
       });
@@ -242,7 +250,7 @@ describe('POST /api/attendees/checkin', () => {
         url: 'http://localhost:3000/api/attendees/checkin',
         headers: {
           'x-user-conference-id': 'test-conf-2026',
-          'x-user-staff-name': 'Test Staff',
+          'x-user-staff-name': encodeStaffName('Test Staff'),
         },
         body: { rowId: '001' },
       });
@@ -262,7 +270,7 @@ describe('POST /api/attendees/checkin', () => {
         url: 'http://localhost:3000/api/attendees/checkin',
         headers: {
           'x-user-conference-id': 'test-conf-2026',
-          'x-user-staff-name': 'Mountain Staff',
+          'x-user-staff-name': encodeStaffName('Mountain Staff'),
         },
         body: { rowId: '001' },
       });
@@ -277,15 +285,15 @@ describe('POST /api/attendees/checkin', () => {
       expect(callArgs.requestBody).toHaveProperty('data');
     });
 
-    it('should handle non-ASCII staff names', async () => {
-      // Note: Testing with ASCII representation due to Node.js Headers API limitations
-      // Japanese characters in headers work fine in real browsers/production
+    it('should handle non-ASCII staff names (Japanese)', async () => {
+      // Now testing with actual Japanese characters using Base64 encoding
+      // This ensures Japanese and other non-ASCII characters work correctly
       const request = createTestRequest({
         method: 'POST',
         url: 'http://localhost:3000/api/attendees/checkin',
         headers: {
           'x-user-conference-id': 'test-conf-2026',
-          'x-user-staff-name': 'Yamada Staff', // ASCII instead of Japanese
+          'x-user-staff-name': encodeStaffName('山田太郎'), // Japanese staff name
         },
         body: { rowId: '001' },
       });
@@ -306,7 +314,7 @@ describe('POST /api/attendees/checkin', () => {
         url: 'http://localhost:3000/api/attendees/checkin',
         headers: {
           'x-user-conference-id': 'test-conf-2026',
-          'x-user-staff-name': 'Test Staff',
+          'x-user-staff-name': encodeStaffName('Test Staff'),
         },
         body: { rowId: validRowId },
       });
@@ -327,7 +335,7 @@ describe('POST /api/attendees/checkin', () => {
           url: 'http://localhost:3000/api/attendees/checkin',
           headers: {
             'x-user-conference-id': 'test-conf-2026',
-            'x-user-staff-name': 'Test Staff',
+            'x-user-staff-name': encodeStaffName('Test Staff'),
           },
           body: { rowId },
         });
@@ -363,7 +371,7 @@ describe('POST /api/attendees/checkin', () => {
         url: 'http://localhost:3000/api/attendees/checkin',
         headers: {
           'x-user-conference-id': 'test-conf-2026',
-          'x-user-staff-name': 'Test Staff',
+          'x-user-staff-name': encodeStaffName('Test Staff'),
         },
         body: { rowId: '001' },
       });
@@ -386,7 +394,7 @@ describe('POST /api/attendees/checkin', () => {
         url: 'http://localhost:3000/api/attendees/checkin',
         headers: {
           'x-user-conference-id': 'test-conf-2026',
-          'x-user-staff-name': 'Test Staff',
+          'x-user-staff-name': encodeStaffName('Test Staff'),
         },
         body: { rowId: '001' },
       });

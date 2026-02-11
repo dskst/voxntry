@@ -10,6 +10,14 @@ import {
 } from '@/__tests__/helpers/mocks/google-sheets';
 import type { ConferenceConfig, Attendee } from '@/types';
 
+/**
+ * Helper function to encode staff name for HTTP headers (Base64)
+ * This matches the encoding used in middleware-helpers.ts
+ */
+function encodeStaffName(staffName: string): string {
+  return Buffer.from(staffName, 'utf-8').toString('base64');
+}
+
 // Mock Google Sheets at module level
 const mockSheetsClient = {
   spreadsheets: {
@@ -123,7 +131,7 @@ describe('GET /api/attendees', () => {
         url: 'http://localhost:3000/api/attendees',
         headers: {
           'x-user-conference-id': 'non-existent-conf',
-          'x-user-staff-name': 'Test Staff',
+          'x-user-staff-name': encodeStaffName('Test Staff'),
           'x-user-role': 'staff',
         },
       });
@@ -158,7 +166,7 @@ describe('GET /api/attendees', () => {
         url: 'http://localhost:3000/api/attendees',
         headers: {
           'x-user-conference-id': 'test-conf-2026',
-          'x-user-staff-name': 'Test Staff',
+          'x-user-staff-name': encodeStaffName('Test Staff'),
           'x-user-role': 'staff',
         },
       });

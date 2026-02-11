@@ -32,6 +32,33 @@ export const formatBoolean = (value: boolean): string => {
 };
 
 /**
+ * Format timestamp for Google Sheets in the specified timezone
+ * @param date - Date object to format
+ * @param timezone - IANA timezone identifier (e.g., "Asia/Tokyo", "America/New_York")
+ * @returns Formatted timestamp string in "YYYY-MM-DD HH:mm:ss" format for Google Sheets datetime type
+ *
+ * @example
+ * formatTimestampForSheets(new Date(), "Asia/Tokyo") // "2026-02-11 19:30:45"
+ * formatTimestampForSheets(new Date(), "America/New_York") // "2026-02-11 05:30:45"
+ */
+export const formatTimestampForSheets = (date: Date, timezone: string = 'Asia/Tokyo'): string => {
+  // Use Intl.DateTimeFormat to format the date in the specified timezone
+  const formatter = new Intl.DateTimeFormat('sv-SE', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  });
+
+  // sv-SE locale formats as "YYYY-MM-DD HH:mm:ss" which is perfect for Google Sheets
+  return formatter.format(date);
+};
+
+/**
  * Convert column index to Excel-style column letter (A, B, C, ..., AA, AB, ...)
  */
 export const getColumnLetter = (colIndex: number): string => {

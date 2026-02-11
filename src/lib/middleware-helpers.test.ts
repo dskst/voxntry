@@ -309,7 +309,7 @@ describe('middleware-helpers', () => {
   });
 
   describe('createUserHeaders', () => {
-    it('should create headers from JWT payload', () => {
+    it('should create headers from JWT payload with Base64-encoded staff name', () => {
       const payload = {
         conferenceId: 'conf-001',
         staffName: 'John Doe',
@@ -317,15 +317,16 @@ describe('middleware-helpers', () => {
       };
 
       const headers = createUserHeaders(payload);
+      const expectedEncodedName = Buffer.from('John Doe', 'utf-8').toString('base64');
 
       expect(headers).toEqual({
         'x-user-conference-id': 'conf-001',
-        'x-user-staff-name': 'John Doe',
+        'x-user-staff-name': expectedEncodedName,
         'x-user-role': 'staff',
       });
     });
 
-    it('should create headers for admin role', () => {
+    it('should create headers for admin role with Base64-encoded staff name', () => {
       const payload = {
         conferenceId: 'conf-002',
         staffName: 'Admin User',
@@ -333,15 +334,16 @@ describe('middleware-helpers', () => {
       };
 
       const headers = createUserHeaders(payload);
+      const expectedEncodedName = Buffer.from('Admin User', 'utf-8').toString('base64');
 
       expect(headers).toEqual({
         'x-user-conference-id': 'conf-002',
-        'x-user-staff-name': 'Admin User',
+        'x-user-staff-name': expectedEncodedName,
         'x-user-role': 'admin',
       });
     });
 
-    it('should handle Japanese characters in staff name', () => {
+    it('should handle Japanese characters in staff name with Base64 encoding', () => {
       const payload = {
         conferenceId: 'conf-003',
         staffName: '山田太郎',
@@ -349,8 +351,35 @@ describe('middleware-helpers', () => {
       };
 
       const headers = createUserHeaders(payload);
+      const encodedName = headers['x-user-staff-name'];
 
-      expect(headers['x-user-staff-name']).toBe('山田太郎');
+      // Verify it's Base64 encoded
+      const decodedName = Buffer.from(encodedName, 'base64').toString('utf-8');
+      expect(decodedName).toBe('山田太郎');
+    });
+
+    it('should correctly encode and decode various non-ASCII characters', () => {
+      const testCases = [
+        '山田太郎', // Japanese
+        'Müller', // German
+        'José', // Spanish
+        '김철수', // Korean
+        '张伟', // Chinese
+      ];
+
+      testCases.forEach((staffName) => {
+        const payload = {
+          conferenceId: 'conf-test',
+          staffName,
+          role: 'staff' as const,
+        };
+
+        const headers = createUserHeaders(payload);
+        const encodedName = headers['x-user-staff-name'];
+        const decodedName = Buffer.from(encodedName, 'base64').toString('utf-8');
+
+        expect(decodedName).toBe(staffName);
+      });
     });
   });
 });

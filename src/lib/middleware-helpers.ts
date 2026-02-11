@@ -106,11 +106,15 @@ export async function verifyAuthentication(
 
 /**
  * Create user headers from JWT payload
+ * Encodes staffName in Base64 to safely handle non-ASCII characters (e.g., Japanese)
  */
 export function createUserHeaders(payload: AuthPayload): Record<string, string> {
+  // Base64 encode staffName to safely transmit non-ASCII characters in HTTP headers
+  const encodedStaffName = Buffer.from(payload.staffName, 'utf-8').toString('base64');
+
   return {
     'x-user-conference-id': payload.conferenceId,
-    'x-user-staff-name': payload.staffName,
+    'x-user-staff-name': encodedStaffName,
     'x-user-role': payload.role,
   };
 }

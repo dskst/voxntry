@@ -40,4 +40,5 @@ export interface ConferenceConfig {
   password: string;
   spreadsheetId: string;
   sheetConfig?: SheetColumnMapping;
+  timezone?: string; // IANA timezone (e.g., "Asia/Tokyo", "America/New_York"). Defaults to "Asia/Tokyo"
 }

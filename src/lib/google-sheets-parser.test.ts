@@ -3,6 +3,7 @@ import {
   parseCommaSeparated,
   parseBoolean,
   formatBoolean,
+  formatTimestampForSheets,
   getColumnLetter,
   mapRowToAttendee,
   calculateSheetRange,
@@ -101,6 +102,64 @@ describe('google-sheets-parser', () => {
 
     it('should format false as FALSE', () => {
       expect(formatBoolean(false)).toBe('FALSE');
+    });
+  });
+
+  describe('formatTimestampForSheets', () => {
+    it('should format timestamp in Asia/Tokyo timezone', () => {
+      const date = new Date('2026-02-11T10:30:45.123Z'); // UTC time
+      const formatted = formatTimestampForSheets(date, 'Asia/Tokyo');
+
+      // UTC+9 hours = 19:30:45
+      expect(formatted).toBe('2026-02-11 19:30:45');
+    });
+
+    it('should format timestamp in America/New_York timezone', () => {
+      const date = new Date('2026-02-11T10:30:45.123Z'); // UTC time
+      const formatted = formatTimestampForSheets(date, 'America/New_York');
+
+      // UTC-5 hours (EST) = 05:30:45
+      expect(formatted).toBe('2026-02-11 05:30:45');
+    });
+
+    it('should format timestamp in Europe/London timezone', () => {
+      const date = new Date('2026-02-11T10:30:45.123Z'); // UTC time
+      const formatted = formatTimestampForSheets(date, 'Europe/London');
+
+      // UTC+0 hours (GMT) = 10:30:45
+      expect(formatted).toBe('2026-02-11 10:30:45');
+    });
+
+    it('should default to Asia/Tokyo when timezone not specified', () => {
+      const date = new Date('2026-02-11T10:30:45.123Z');
+      const formatted = formatTimestampForSheets(date);
+
+      expect(formatted).toBe('2026-02-11 19:30:45');
+    });
+
+    it('should format timestamp with correct date format YYYY-MM-DD HH:mm:ss', () => {
+      const date = new Date('2026-01-05T03:05:09.000Z');
+      const formatted = formatTimestampForSheets(date, 'Asia/Tokyo');
+
+      // Should have leading zeros for single-digit months, days, hours, minutes, seconds
+      expect(formatted).toBe('2026-01-05 12:05:09');
+      expect(formatted).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
+    });
+
+    it('should handle midnight correctly', () => {
+      const date = new Date('2026-02-11T15:00:00.000Z'); // UTC midnight
+      const formatted = formatTimestampForSheets(date, 'Asia/Tokyo');
+
+      // UTC+9 hours = next day at 00:00:00
+      expect(formatted).toBe('2026-02-12 00:00:00');
+    });
+
+    it('should handle year boundary correctly', () => {
+      const date = new Date('2025-12-31T20:00:00.000Z');
+      const formatted = formatTimestampForSheets(date, 'Asia/Tokyo');
+
+      // UTC+9 hours = next year
+      expect(formatted).toBe('2026-01-01 05:00:00');
     });
   });
 
