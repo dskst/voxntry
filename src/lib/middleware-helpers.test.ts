@@ -88,8 +88,10 @@ describe('middleware-helpers', () => {
       const result = await verifyCsrfProtection('POST', headers, cookies);
 
       expect(result.success).toBe(false);
-      expect(result.status).toBe(403);
-      expect(result.error).toContain('Invalid request origin');
+      if (!result.success) {
+        expect(result.status).toBe(403);
+        expect(result.error).toContain('Invalid request origin');
+      }
     });
 
     it('should fail for POST requests with mismatched CSRF tokens', async () => {
@@ -114,8 +116,10 @@ describe('middleware-helpers', () => {
       const result = await verifyCsrfProtection('POST', headers, cookies);
 
       expect(result.success).toBe(false);
-      expect(result.status).toBe(403);
-      expect(result.error).toContain('Invalid CSRF token');
+      if (!result.success) {
+        expect(result.status).toBe(403);
+        expect(result.error).toContain('Invalid CSRF token');
+      }
     });
 
     it('should fail for POST requests with missing CSRF cookie', async () => {
@@ -136,7 +140,9 @@ describe('middleware-helpers', () => {
       const result = await verifyCsrfProtection('POST', headers, cookies);
 
       expect(result.success).toBe(false);
-      expect(result.status).toBe(403);
+      if (!result.success) {
+        expect(result.status).toBe(403);
+      }
     });
 
     it('should fail for POST requests with missing CSRF header', async () => {
@@ -159,7 +165,9 @@ describe('middleware-helpers', () => {
       const result = await verifyCsrfProtection('POST', headers, cookies);
 
       expect(result.success).toBe(false);
-      expect(result.status).toBe(403);
+      if (!result.success) {
+        expect(result.status).toBe(403);
+      }
     });
 
     it('should verify CSRF for PUT requests', async () => {
@@ -251,10 +259,12 @@ describe('middleware-helpers', () => {
       const result = await verifyAuthentication(cookies);
 
       expect(result.success).toBe(true);
-      expect(result.payload).toBeDefined();
-      expect(result.payload?.conferenceId).toBe('conf-001');
-      expect(result.payload?.staffName).toBe('John Doe');
-      expect(result.payload?.role).toBe('staff');
+      if (result.success) {
+        expect(result.payload).toBeDefined();
+        expect(result.payload?.conferenceId).toBe('conf-001');
+        expect(result.payload?.staffName).toBe('John Doe');
+        expect(result.payload?.role).toBe('staff');
+      }
     });
 
     it('should fail when auth token is missing', async () => {
@@ -266,8 +276,10 @@ describe('middleware-helpers', () => {
       const result = await verifyAuthentication(cookies);
 
       expect(result.success).toBe(false);
-      expect(result.status).toBe(401);
-      expect(result.error).toContain('No token provided');
+      if (!result.success) {
+        expect(result.status).toBe(401);
+        expect(result.error).toContain('No token provided');
+      }
     });
 
     it('should fail with invalid JWT token', async () => {
@@ -281,8 +293,10 @@ describe('middleware-helpers', () => {
       const result = await verifyAuthentication(cookies);
 
       expect(result.success).toBe(false);
-      expect(result.status).toBe(401);
-      expect(result.error).toContain('Invalid or expired token');
+      if (!result.success) {
+        expect(result.status).toBe(401);
+        expect(result.error).toContain('Invalid or expired token');
+      }
     });
 
     it('should fail with expired JWT token', async () => {
@@ -304,7 +318,9 @@ describe('middleware-helpers', () => {
       const result = await verifyAuthentication(cookies);
 
       expect(result.success).toBe(false);
-      expect(result.status).toBe(401);
+      if (!result.success) {
+        expect(result.status).toBe(401);
+      }
     });
   });
 

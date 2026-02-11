@@ -1,7 +1,7 @@
 /**
  * @vitest-environment node
  */
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { generateCsrfToken, verifyCsrfToken, verifyOrigin } from './csrf';
 
 describe('csrf', () => {
@@ -107,19 +107,14 @@ describe('csrf', () => {
 
   describe('verifyOrigin', () => {
     const testHost = 'example.com';
-    let originalNodeEnv: string | undefined;
-
-    beforeEach(() => {
-      originalNodeEnv = process.env.NODE_ENV;
-    });
 
     afterEach(() => {
-      process.env.NODE_ENV = originalNodeEnv;
+      vi.unstubAllEnvs();
     });
 
     describe('in production', () => {
       beforeEach(() => {
-        process.env.NODE_ENV = 'production';
+        vi.stubEnv('NODE_ENV', 'production');
       });
 
       it('should accept HTTPS origin matching host', () => {
@@ -155,7 +150,7 @@ describe('csrf', () => {
 
     describe('in development', () => {
       beforeEach(() => {
-        process.env.NODE_ENV = 'development';
+        vi.stubEnv('NODE_ENV', 'development');
       });
 
       it('should accept HTTPS origin matching host', () => {
@@ -215,7 +210,7 @@ describe('csrf', () => {
       });
 
       it('should prioritize origin over referer', () => {
-        process.env.NODE_ENV = 'production';
+        vi.stubEnv('NODE_ENV', 'production');
 
         // Valid origin, invalid referer - should succeed (origin wins)
         const result1 = verifyOrigin(
@@ -235,7 +230,7 @@ describe('csrf', () => {
       });
 
       it('should handle subdomain origins', () => {
-        process.env.NODE_ENV = 'production';
+        vi.stubEnv('NODE_ENV', 'production');
         const result = verifyOrigin('https://subdomain.example.com', null, 'example.com');
 
         // Should reject - subdomain doesn't match
@@ -243,7 +238,7 @@ describe('csrf', () => {
       });
 
       it('should handle port numbers in origin', () => {
-        process.env.NODE_ENV = 'production';
+        vi.stubEnv('NODE_ENV', 'production');
         const hostWithPort = 'example.com:8080';
         const result = verifyOrigin(`https://${hostWithPort}`, null, hostWithPort);
 
@@ -251,7 +246,7 @@ describe('csrf', () => {
       });
 
       it('should handle referer with query string', () => {
-        process.env.NODE_ENV = 'production';
+        vi.stubEnv('NODE_ENV', 'production');
         const result = verifyOrigin(
           null,
           `https://${testHost}/api/test?param=value`,
@@ -262,7 +257,7 @@ describe('csrf', () => {
       });
 
       it('should handle referer with hash', () => {
-        process.env.NODE_ENV = 'production';
+        vi.stubEnv('NODE_ENV', 'production');
         const result = verifyOrigin(
           null,
           `https://${testHost}/page#section`,

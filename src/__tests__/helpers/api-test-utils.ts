@@ -54,7 +54,11 @@ export function createTestRequest(options: TestRequestOptions = {}): NextRequest
   }
 
   // Create request init object
-  const init: RequestInit = {
+  const init: {
+    method: string;
+    headers: Headers;
+    body?: string;
+  } = {
     method,
     headers: requestHeaders,
   };
@@ -64,7 +68,7 @@ export function createTestRequest(options: TestRequestOptions = {}): NextRequest
     init.body = JSON.stringify(body);
   }
 
-  return new NextRequest(url, init as RequestInit);
+  return new NextRequest(url, init);
 }
 
 /**
@@ -207,8 +211,9 @@ export function assertResponseStatus(
     );
   }
 
-  if (expectedBodyKeys && response.body && typeof response.body === 'object') {
-    const missingKeys = expectedBodyKeys.filter(key => !(key in response.body));
+  if (expectedBodyKeys && response.body && typeof response.body === 'object' && response.body !== null) {
+    const bodyObj = response.body as Record<string, unknown>;
+    const missingKeys = expectedBodyKeys.filter(key => !(key in bodyObj));
     if (missingKeys.length > 0) {
       throw new Error(
         `Missing expected keys in response body: ${missingKeys.join(', ')}`

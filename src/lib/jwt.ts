@@ -5,6 +5,7 @@ export interface AuthPayload {
   conferenceId: string;
   staffName: string;
   role: 'staff' | 'admin';
+  [key: string]: unknown;
 }
 
 // Get JWT secret as Uint8Array
