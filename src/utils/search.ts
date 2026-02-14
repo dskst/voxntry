@@ -13,6 +13,7 @@ import { toHiragana } from 'wanakana';
 /**
  * 文字列を正規化する
  * - カタカナ→ひらがなに変換
+ * - 長音記号→母音に変換（wanakanaと統一）
  * - 全角英数字→半角に変換
  * - 全角スペース→半角に変換
  * - 小文字に統一
@@ -27,6 +28,20 @@ export function normalizeString(str: string): string {
     .replace(/[\u30A1-\u30F6]/g, (s) =>
       String.fromCharCode(s.charCodeAt(0) - 0x60)
     )
+    // 長音記号「ー」を母音に変換（カタカナ・ひらがな両方）
+    .replace(/ー/g, (match, offset, string) => {
+      // 直前の文字を取得
+      if (offset === 0) return match; // 文頭の場合はそのまま
+      const prevChar = string[offset - 1];
+      // 母音判定して適切な文字を返す
+      if (/[あかがさざただなはばぱまやらわぁゃ]/.test(prevChar)) return 'あ';
+      if (/[いきぎしじちぢにひびぴみりぃ]/.test(prevChar)) return 'い';
+      if (/[うくぐすずつづぬふぶぷむゆるぅゅ]/.test(prevChar)) return 'う';
+      if (/[えけげせぜてでねへべぺめれぇ]/.test(prevChar)) return 'え';
+      if (/[おこごそぞとどのほぼぽもよろをぉょ]/.test(prevChar)) return 'お';
+      if (prevChar === 'ん') return 'ん';
+      return match; // それ以外はそのまま
+    })
     // 全角英数字→半角に変換
     .replace(/[Ａ-Ｚａ-ｚ０-９]/g, (s) =>
       String.fromCharCode(s.charCodeAt(0) - 0xFEE0)

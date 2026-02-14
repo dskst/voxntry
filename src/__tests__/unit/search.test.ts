@@ -34,8 +34,9 @@ describe('Search Utilities - Comprehensive Unit Tests', () => {
       });
 
       it('should handle katakana with long vowel mark', () => {
-        // Note: ー (long vowel mark) is not in the conversion range
-        expect(normalizeString('コーヒー')).toBe('こーひー');
+        // Long vowel mark is now converted to the appropriate vowel
+        expect(normalizeString('コーヒー')).toBe('こおひい');
+        expect(normalizeString('スマート')).toBe('すまあと');
       });
     });
 
@@ -102,6 +103,23 @@ describe('Search Utilities - Comprehensive Unit Tests', () => {
         expect(normalizeString('株式会社ＡＢＣ')).toBe('株式会社abc');
         // ガ→が, ャ→ゃ, Full-width space → half-width space
         expect(normalizeString('カブシキガイシャ　ＸＹＺ')).toBe('かぶしきがいしゃ xyz');
+      });
+    });
+
+    describe('Long Vowel Normalization - Hiragana', () => {
+      it('should convert hiragana long vowel marks to vowels', () => {
+        // ひらがなの長音記号も母音に変換される
+        expect(normalizeString('すまーとえいちあーる')).toBe('すまあとえいちあある');
+        expect(normalizeString('こーひー')).toBe('こおひい');
+        expect(normalizeString('らーめん')).toBe('らあめん');
+      });
+
+      it('should handle mixed hiragana and katakana long vowels consistently', () => {
+        // カタカナとひらがなの長音記号を統一的に処理
+        expect(normalizeString('スマート')).toBe('すまあと');
+        expect(normalizeString('すまーと')).toBe('すまあと');
+        // 両方とも同じ結果になる
+        expect(normalizeString('スマート')).toBe(normalizeString('すまーと'));
       });
     });
 
@@ -984,6 +1002,60 @@ describe('Search Utilities - Comprehensive Unit Tests', () => {
         expect(kanaResults).toHaveLength(1);
         expect(kanaResults[0].name).toBe('佐藤次郎');
         expect(nameResults).toHaveLength(0);
+      });
+    });
+
+    describe('Long Vowel Mark Search Issue (Bug Fix)', () => {
+      // Regression test for the reported issue:
+      // affiliationKana: 'すまーとえいちあーる'
+      // - 「すまーと」で検索 → ヒット ✓
+      // - 「スマート」で検索 → ヒットしない ✗ (バグ)
+      // - 「スマ」で検索 → ヒット ✓
+
+      const testData = [
+        {
+          id: '1',
+          name: 'テスト太郎',
+          nameKana: 'テストタロウ',
+          affiliation: '株式会社SmartHR',
+          affiliationKana: 'すまーとえいちあーる', // ひらがな+長音記号
+        },
+      ];
+
+      it('should match katakana query against hiragana data with long vowel marks', () => {
+        // 「スマート」で検索すると「すまーとえいちあーる」にマッチするべき
+        const results = filterAttendees(testData, 'スマート', {
+          fields: ['affiliationKana'],
+          normalize: true,
+        });
+        expect(results).toHaveLength(1);
+        expect(results[0].affiliationKana).toBe('すまーとえいちあーる');
+      });
+
+      it('should match hiragana query with long vowel mark', () => {
+        // 「すまーと」でも引き続きマッチする
+        const results = filterAttendees(testData, 'すまーと', {
+          fields: ['affiliationKana'],
+          normalize: true,
+        });
+        expect(results).toHaveLength(1);
+      });
+
+      it('should match partial katakana query', () => {
+        // 「スマ」でもマッチする
+        const results = filterAttendees(testData, 'スマ', {
+          fields: ['affiliationKana'],
+          normalize: true,
+        });
+        expect(results).toHaveLength(1);
+      });
+
+      it('should consistently normalize both katakana and hiragana long vowels', () => {
+        // 「スマート」と「すまーと」は同じ正規化結果になるべき
+        const katakanaNormalized = normalizeString('スマート');
+        const hiraganaNormalized = normalizeString('すまーと');
+        expect(katakanaNormalized).toBe(hiraganaNormalized);
+        expect(katakanaNormalized).toBe('すまあと');
       });
     });
 
